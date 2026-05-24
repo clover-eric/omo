@@ -1,0 +1,2139 @@
+openapi: 3.1.0
+info:
+  title: OMO Boundary Operations API
+  version: 0.1.0
+  description: API contract for OMO 边界运维管理平台.
+servers:
+  - url: /
+paths:
+  /api/security/csrf:
+    get:
+      summary: Prepare browser CSRF token
+      operationId: prepareCSRFToken
+      responses:
+        '200':
+          description: CSRF cookie is ready for browser state-changing requests
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Envelope'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/CSRFStatus'
+  /api/bootstrap/status:
+    get:
+      summary: Get bootstrap status
+      operationId: getBootstrapStatus
+      responses:
+        '200':
+          description: Current bootstrap state
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Envelope'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/BootstrapStatus'
+  /api/bootstrap/start:
+    post:
+      summary: Start bootstrap job
+      operationId: startBootstrap
+      parameters:
+        - $ref: '#/components/parameters/CSRFToken'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BootstrapStartRequest'
+      responses:
+        '202':
+          description: Bootstrap job accepted
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Envelope'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/BootstrapStartResult'
+  /api/bootstrap/events:
+    get:
+      summary: Stream bootstrap events
+      operationId: streamBootstrapEvents
+      responses:
+        '200':
+          description: Server-sent bootstrap events
+          content:
+            text/event-stream:
+              schema:
+                type: string
+  /api/auth/login:
+    post:
+      summary: Log in administrator
+      operationId: login
+      parameters:
+        - $ref: '#/components/parameters/CSRFToken'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+      responses:
+        '200':
+          description: Login result
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Envelope'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/LoginResult'
+  /api/auth/logout:
+    post:
+      summary: Log out administrator
+      operationId: logout
+      parameters:
+        - $ref: '#/components/parameters/CSRFToken'
+      responses:
+        '200':
+          description: Logout result
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Envelope'
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        required:
+                          - loggedOut
+                        properties:
+                          loggedOut:
+                            type: boolean
+  /api/auth/me:
+    get:
+      summary: Get current administrator session
+      operationId: getCurrentAdminSession
+      responses:
+        '200':
+          description: Current session state
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Envelope'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/SessionStatus'
+  /api/system/overview:
+    get:
+      summary: Get system overview
+      operationId: getSystemOverview
+      responses:
+        '200':
+          description: System overview
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Envelope'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/SystemOverview'
+  /api/system/health:
+    get:
+      summary: Get system health
+      operationId: getSystemHealth
+      responses:
+        '200':
+          description: System health
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Envelope'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/Health'
+  /api/core/singbox/status:
+    get:
+      summary: Get sing-box core status
+      operationId: getSingBoxStatus
+      responses:
+        '200':
+          description: sing-box core installation and version status
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Envelope'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/SingBoxStatus'
+  /api/services/profiles:
+    get:
+      summary: List service profile templates
+      operationId: listServiceProfiles
+      responses:
+        '200':
+          description: Backend-owned service profile templates available for managed access services
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Envelope'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/ServiceProfileList'
+  /api/services:
+    get:
+      summary: List access services
+      operationId: listServices
+      responses:
+        '200':
+          description: Services
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Envelope'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/ServiceList'
+    post:
+      summary: Create access service
+      operationId: createService
+      parameters:
+        - $ref: '#/components/parameters/CSRFToken'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ServiceCreateRequest'
+      responses:
+        '201':
+          description: Service created
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Envelope'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/ServiceResult'
+  /api/services/{id}:
+    patch:
+      summary: Update access service
+      operationId: updateService
+      parameters:
+        - $ref: '#/components/parameters/Id'
+        - $ref: '#/components/parameters/CSRFToken'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ServiceUpdateRequest'
+      responses:
+        '200':
+          description: Service updated
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Envelope'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/ServiceResult'
+  /api/services/{id}/apply:
+    post:
+      summary: Apply service configuration
+      operationId: applyService
+      parameters:
+        - $ref: '#/components/parameters/Id'
+        - $ref: '#/components/parameters/CSRFToken'
+      responses:
+        '202':
+          description: Apply job accepted
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Envelope'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/ServiceConfigJobResult'
+  /api/services/{id}/rollback:
+    post:
+      summary: Roll back service configuration
+      operationId: rollbackService
+      parameters:
+        - $ref: '#/components/parameters/Id'
+        - $ref: '#/components/parameters/CSRFToken'
+      responses:
+        '202':
+          description: Rollback job accepted
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Envelope'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/ServiceConfigJobResult'
+  /api/subscriptions:
+    get:
+      summary: List smart subscriptions
+      operationId: listSubscriptions
+      responses:
+        '200':
+          description: Subscriptions
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Envelope'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/SubscriptionList'
+    post:
+      summary: Create smart subscription
+      operationId: createSubscription
+      parameters:
+        - $ref: '#/components/parameters/CSRFToken'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SubscriptionCreateRequest'
+      responses:
+        '201':
+          description: Subscription created
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Envelope'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/SubscriptionTokenResult'
+  /api/subscriptions/{id}/rotate:
+    post:
+      summary: Rotate subscription token
+      operationId: rotateSubscription
+      parameters:
+        - $ref: '#/components/parameters/Id'
+        - $ref: '#/components/parameters/CSRFToken'
+      responses:
+        '200':
+          description: Token rotated
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Envelope'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/SubscriptionTokenResult'
+  /s/{token}:
+    get:
+      summary: Public configuration distribution endpoint
+      operationId: getSubscriptionByToken
+      parameters:
+        - name: token
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Subscription content or adaptive import page
+          content:
+            text/html:
+              schema:
+                type: string
+            application/json:
+              schema:
+                type: object
+            text/plain:
+              schema:
+                type: string
+            image/svg+xml:
+              schema:
+                type: string
+  /api/diagnostics/run:
+    post:
+      summary: Run server checkup
+      operationId: runDiagnostics
+      parameters:
+        - $ref: '#/components/parameters/CSRFToken'
+      responses:
+        '202':
+          description: Diagnostic job accepted
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Envelope'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/DiagnosticsRunResult'
+  /api/diagnostics/latest:
+    get:
+      summary: Get latest server checkup
+      operationId: getLatestDiagnostics
+      responses:
+        '200':
+          description: Latest diagnostic report
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Envelope'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/DiagnosticsLatestResult'
+  /api/diagnostics/events:
+    get:
+      summary: Stream diagnostic events
+      operationId: streamDiagnosticEvents
+      responses:
+        '200':
+          description: Server-sent diagnostic events
+          content:
+            text/event-stream:
+              schema:
+                type: string
+  /api/pairing/code:
+    post:
+      summary: Create cascade pairing code
+      operationId: createPairingCode
+      parameters:
+        - $ref: '#/components/parameters/CSRFToken'
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PairingCodeCreateRequest'
+      responses:
+        '201':
+          description: Pairing code created
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Envelope'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/PairingCodeResult'
+  /api/pairing/accept:
+    post:
+      summary: Accept cascade pairing code
+      operationId: acceptPairingCode
+      parameters:
+        - $ref: '#/components/parameters/CSRFToken'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PairingAcceptRequest'
+      responses:
+        '202':
+          description: Pairing accepted
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Envelope'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/PairingAcceptResult'
+  /api/pairing/exchange:
+    post:
+      summary: Exchange cascade trust with another OMO instance
+      operationId: exchangePairingCode
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PairingExchangeRequest'
+      responses:
+        '200':
+          description: Pairing exchange completed
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Envelope'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/PairingExchangeResult'
+  /api/cascade/nodes:
+    get:
+      summary: List cascade nodes
+      operationId: listCascadeNodes
+      responses:
+        '200':
+          description: Cascade nodes
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Envelope'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/CascadeNodeList'
+  /api/cascade/nodes/{id}:
+    patch:
+      summary: Update cascade node
+      operationId: updateCascadeNode
+      parameters:
+        - $ref: '#/components/parameters/Id'
+        - $ref: '#/components/parameters/CSRFToken'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CascadeNodeUpdateRequest'
+      responses:
+        '200':
+          description: Cascade node updated
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Envelope'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/CascadeNodeResult'
+    delete:
+      summary: Delete cascade node
+      operationId: deleteCascadeNode
+      parameters:
+        - $ref: '#/components/parameters/Id'
+        - $ref: '#/components/parameters/CSRFToken'
+      responses:
+        '200':
+          description: Cascade node deleted
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Envelope'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/CascadeNodeDeleteResult'
+  /api/cascade/pairs/{id}/plan:
+    post:
+      summary: Generate one-hop cascade configuration plan
+      operationId: planCascadePair
+      parameters:
+        - $ref: '#/components/parameters/Id'
+        - $ref: '#/components/parameters/CSRFToken'
+      responses:
+        '200':
+          description: Cascade configuration plan generated
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Envelope'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/CascadeConfigPlanResult'
+  /api/cascade/pairs/{id}/apply:
+    post:
+      summary: Apply one-hop cascade configuration after operator confirmation
+      operationId: applyCascadePair
+      parameters:
+        - $ref: '#/components/parameters/Id'
+        - $ref: '#/components/parameters/CSRFToken'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CascadeConfigApplyRequest'
+      responses:
+        '202':
+          description: Cascade configuration apply job accepted
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Envelope'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/CascadeConfigApplyResult'
+  /api/cascade/health/sample:
+    post:
+      summary: Sample live cascade link health
+      operationId: sampleCascadeHealth
+      parameters:
+        - $ref: '#/components/parameters/CSRFToken'
+      responses:
+        '202':
+          description: Cascade health sampling completed
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Envelope'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/CascadeHealthSampleResult'
+  /api/backups:
+    get:
+      summary: List backups
+      operationId: listBackups
+      responses:
+        '200':
+          description: Backups
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Envelope'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/BackupListResult'
+    post:
+      summary: Create backup
+      operationId: createBackup
+      parameters:
+        - $ref: '#/components/parameters/CSRFToken'
+      responses:
+        '202':
+          description: Backup job accepted
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Envelope'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/BackupCreateResult'
+  /api/backups/{id}/restore:
+    post:
+      summary: Restore backup
+      operationId: restoreBackup
+      parameters:
+        - $ref: '#/components/parameters/Id'
+        - $ref: '#/components/parameters/CSRFToken'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BackupRestoreRequest'
+      responses:
+        '202':
+          description: Restore job accepted
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Envelope'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/BackupRestoreResult'
+  /api/update/check:
+    get:
+      summary: Check for update
+      operationId: checkUpdate
+      responses:
+        '200':
+          description: Update check result
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Envelope'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/UpdateCheckResult'
+  /api/update/apply:
+    post:
+      summary: Apply update
+      operationId: applyUpdate
+      parameters:
+        - $ref: '#/components/parameters/CSRFToken'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateApplyRequest'
+      responses:
+        '202':
+          description: Update job accepted
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Envelope'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/UpdateJobResult'
+  /api/update/rollback:
+    post:
+      summary: Roll back update
+      operationId: rollbackUpdate
+      parameters:
+        - $ref: '#/components/parameters/CSRFToken'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateRollbackRequest'
+      responses:
+        '202':
+          description: Rollback job accepted
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Envelope'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/UpdateJobResult'
+  /api/audit:
+    get:
+      summary: List audit logs
+      operationId: listAuditLogs
+      parameters:
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 200
+      responses:
+        '200':
+          description: Audit logs
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Envelope'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/AuditListResult'
+  /api/settings:
+    get:
+      summary: Get settings
+      operationId: getSettings
+      responses:
+        '200':
+          description: Settings
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Envelope'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/SettingsResponse'
+    patch:
+      summary: Update settings
+      operationId: updateSettings
+      parameters:
+        - $ref: '#/components/parameters/CSRFToken'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SettingsUpdateRequest'
+      responses:
+        '200':
+          description: Settings updated
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Envelope'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/SettingsResponse'
+components:
+  parameters:
+    CSRFToken:
+      name: X-CSRF-Token
+      in: header
+      required: true
+      schema:
+        type: string
+      description: Browser state-changing APIs must echo the readable omo_csrf cookie value.
+    Id:
+      name: id
+      in: path
+      required: true
+      schema:
+        type: string
+  schemas:
+    Envelope:
+      type: object
+      required:
+        - success
+        - data
+        - error
+        - requestId
+      properties:
+        success:
+          type: boolean
+        data: true
+        error:
+          anyOf:
+            - $ref: '#/components/schemas/APIError'
+            - type: 'null'
+        requestId:
+          type: string
+    APIError:
+      type: object
+      required:
+        - code
+        - message
+        - details
+      properties:
+        code:
+          type: string
+        message:
+          type: string
+        details:
+          type: object
+          additionalProperties: true
+    CSRFStatus:
+      type: object
+      required:
+        - csrfReady
+      properties:
+        csrfReady:
+          type: boolean
+    BootstrapStatus:
+      type: object
+      required:
+        - state
+        - initialized
+        - phase1Complete
+        - requiresToken
+      properties:
+        state:
+          type: string
+          enum:
+            - UNINITIALIZED
+            - PREFLIGHT_CHECK
+            - ADMIN_CREATE
+            - DOMAIN_VERIFY
+            - TLS_PROVISION
+            - PANEL_HTTPS_ENABLE
+            - CORE_INSTALL
+            - CORE_CONFIG_RENDER
+            - SERVICE_PROFILE_CREATE
+            - SUBSCRIPTION_CREATE
+            - SECURITY_HARDEN
+            - FINAL_HEALTH_CHECK
+            - READY
+        initialized:
+          type: boolean
+        phase1Complete:
+          type: boolean
+        requiresToken:
+          type: boolean
+        domain:
+          type: string
+        latestJob:
+          anyOf:
+            - $ref: '#/components/schemas/Job'
+            - type: 'null'
+        nextRequirement:
+          type: string
+        phase2Result:
+          anyOf:
+            - $ref: '#/components/schemas/Phase2Result'
+            - type: 'null'
+    BootstrapStartRequest:
+      type: object
+      required:
+        - token
+        - username
+        - password
+        - confirmPassword
+        - domain
+      properties:
+        token:
+          type: string
+        username:
+          type: string
+          minLength: 3
+          maxLength: 64
+        password:
+          type: string
+          minLength: 12
+        confirmPassword:
+          type: string
+          minLength: 12
+        domain:
+          type: string
+        retry:
+          type: boolean
+    LoginRequest:
+      type: object
+      required:
+        - username
+        - password
+      properties:
+        username:
+          type: string
+        password:
+          type: string
+    LoginResult:
+      type: object
+      required:
+        - admin
+      properties:
+        admin:
+          $ref: '#/components/schemas/AdminView'
+    SessionStatus:
+      type: object
+      required:
+        - authenticated
+      properties:
+        authenticated:
+          type: boolean
+        admin:
+          anyOf:
+            - $ref: '#/components/schemas/AdminView'
+            - type: 'null'
+    AdminView:
+      type: object
+      required:
+        - id
+        - username
+      properties:
+        id:
+          type: string
+        username:
+          type: string
+    BootstrapStartResult:
+      type: object
+      required:
+        - job
+        - redirectTo
+      properties:
+        job:
+          $ref: '#/components/schemas/Job'
+        redirectTo:
+          type: string
+    Job:
+      type: object
+      required:
+        - id
+        - kind
+        - state
+        - status
+        - progress
+        - userMessage
+        - createdAt
+        - updatedAt
+      properties:
+        id:
+          type: string
+        kind:
+          type: string
+        state:
+          type: string
+        status:
+          type: string
+        progress:
+          type: integer
+        userMessage:
+          type: string
+        internalErrorCode:
+          type: string
+        startedAt:
+          type: string
+          format: date-time
+        finishedAt:
+          type: string
+          format: date-time
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+    Phase2Result:
+      type: object
+      properties:
+        resolvedIps:
+          type: array
+          items:
+            type: string
+        portsAvailable:
+          type: array
+          items:
+            type: integer
+        certificateIssuer:
+          type: string
+        message:
+          type: string
+        entryMode:
+          type: string
+          enum:
+            - https_domain
+            - temporary_http
+            - local
+        securityState:
+          type: string
+          enum:
+            - ready
+            - degraded
+        warnings:
+          type: array
+          items:
+            type: string
+    Health:
+      type: object
+      required:
+        - status
+        - service
+        - version
+        - timestamp
+      properties:
+        status:
+          type: string
+        service:
+          type: string
+        version:
+          type: string
+        timestamp:
+          type: string
+          format: date-time
+    SingBoxStatus:
+      type: object
+      required:
+        - installed
+        - healthy
+        - message
+      properties:
+        installed:
+          type: boolean
+        healthy:
+          type: boolean
+        version:
+          type: string
+        path:
+          type: string
+        installSource:
+          type: string
+          enum:
+            - configured_path
+            - path
+            - candidate_path
+        message:
+          type: string
+    SystemOverview:
+      type: object
+      required:
+        - status
+        - service
+        - version
+        - timestamp
+        - core
+      properties:
+        status:
+          type: string
+          enum:
+            - ok
+        service:
+          type: string
+          enum:
+            - omo
+        version:
+          type: string
+        timestamp:
+          type: string
+          format: date-time
+        bootstrap:
+          $ref: '#/components/schemas/BootstrapStatus'
+        core:
+          $ref: '#/components/schemas/SingBoxStatus'
+        counts:
+          type: object
+          required:
+            - admins
+            - serviceProfiles
+            - services
+          properties:
+            admins:
+              type: integer
+            serviceProfiles:
+              type: integer
+            services:
+              type: integer
+    ServiceProfileList:
+      type: object
+      required:
+        - profiles
+      properties:
+        profiles:
+          type: array
+          items:
+            $ref: '#/components/schemas/ServiceProfile'
+    ServiceProfile:
+      type: object
+      required:
+        - id
+        - version
+        - displayName
+        - category
+        - summary
+        - expertProtocol
+        - transport
+        - securityLayer
+        - requiresDomain
+        - requiresTLSCert
+        - requiresUdp
+        - defaultPortPolicy
+        - dependencies
+        - clientFormats
+        - scoreWeights
+        - templateRef
+        - goldenTestRef
+        - rollbackStrategy
+      properties:
+        id:
+          type: string
+          enum:
+            - standard-secure-access
+            - high-throughput-access
+            - broad-compatibility-access
+            - lightweight-fallback-access
+            - mobile-optimized-access
+        version:
+          type: string
+        displayName:
+          type: string
+        category:
+          type: string
+          enum:
+            - standard
+            - performance
+            - compatibility
+            - fallback
+            - mobility
+        summary:
+          type: string
+        expertProtocol:
+          type: string
+        transport:
+          type: string
+        securityLayer:
+          type: string
+        requiresDomain:
+          type: boolean
+        requiresTLSCert:
+          type: boolean
+        requiresUdp:
+          type: boolean
+        defaultPortPolicy:
+          type: string
+        dependencies:
+          type: array
+          items:
+            type: string
+        clientFormats:
+          type: array
+          items:
+            type: string
+        scoreWeights:
+          $ref: '#/components/schemas/ServiceProfileScoreWeights'
+        templateRef:
+          type: string
+        goldenTestRef:
+          type: string
+        rollbackStrategy:
+          type: string
+    ServiceList:
+      type: object
+      required:
+        - services
+        - profiles
+      properties:
+        services:
+          type: array
+          items:
+            $ref: '#/components/schemas/ServiceInstance'
+        profiles:
+          type: array
+          items:
+            $ref: '#/components/schemas/ServiceProfile'
+    ServiceResult:
+      type: object
+      required:
+        - service
+      properties:
+        service:
+          $ref: '#/components/schemas/ServiceInstance'
+    ServiceCreateRequest:
+      type: object
+      required:
+        - profileId
+      properties:
+        profileId:
+          type: string
+          enum:
+            - standard-secure-access
+            - high-throughput-access
+            - broad-compatibility-access
+            - lightweight-fallback-access
+            - mobile-optimized-access
+        displayName:
+          type: string
+          minLength: 1
+          maxLength: 80
+        listenPort:
+          type: integer
+          minimum: 0
+          maximum: 65535
+          description: Zero means OMO can allocate or reuse the backend-managed entry during apply.
+        status:
+          type: string
+          enum:
+            - planned
+            - active
+            - disabled
+    ServiceUpdateRequest:
+      type: object
+      properties:
+        displayName:
+          type: string
+          minLength: 1
+          maxLength: 80
+        listenPort:
+          type: integer
+          minimum: 0
+          maximum: 65535
+        status:
+          type: string
+          enum:
+            - planned
+            - active
+            - disabled
+        configVersion:
+          type: string
+    ServiceInstance:
+      type: object
+      required:
+        - id
+        - profileId
+        - displayName
+        - listenPort
+        - status
+        - configVersion
+        - createdAt
+        - updatedAt
+      properties:
+        id:
+          type: string
+        profileId:
+          type: string
+        displayName:
+          type: string
+        listenPort:
+          type: integer
+        status:
+          type: string
+          enum:
+            - planned
+            - active
+            - disabled
+        configVersion:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+    ServiceProfileScoreWeights:
+      type: object
+      required:
+        - latency
+        - throughput
+        - security
+        - stability
+        - compatibility
+        - resource
+        - operations
+        - resilience
+      properties:
+        latency:
+          type: integer
+        throughput:
+          type: integer
+        security:
+          type: integer
+        stability:
+          type: integer
+        compatibility:
+          type: integer
+        resource:
+          type: integer
+        operations:
+          type: integer
+        resilience:
+          type: integer
+    ServiceConfigJobResult:
+      type: object
+      required:
+        - job
+        - result
+      properties:
+        job:
+          $ref: '#/components/schemas/Job'
+        result:
+          $ref: '#/components/schemas/ServiceConfigResult'
+        instances:
+          type: array
+          items:
+            $ref: '#/components/schemas/ServiceInstance'
+    ServiceConfigResult:
+      type: object
+      required:
+        - profileId
+        - configVersion
+        - configPath
+        - rolledBack
+        - listenPort
+      properties:
+        profileId:
+          type: string
+        profileVersion:
+          type: string
+        profileDisplayName:
+          type: string
+        expertProtocol:
+          type: string
+        configVersion:
+          type: string
+        configPath:
+          type: string
+        backupPath:
+          type: string
+        rolledBack:
+          type: boolean
+        listenPort:
+          type: integer
+    SubscriptionList:
+      type: object
+      required:
+        - subscriptions
+      properties:
+        subscriptions:
+          type: array
+          items:
+            $ref: '#/components/schemas/SubscriptionToken'
+    SubscriptionCreateRequest:
+      type: object
+      required:
+        - name
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 80
+        expiresAt:
+          type: string
+          format: date-time
+    SubscriptionTokenResult:
+      type: object
+      required:
+        - subscription
+        - token
+        - url
+      properties:
+        subscription:
+          $ref: '#/components/schemas/SubscriptionToken'
+        token:
+          type: string
+          description: Returned only immediately after create or rotate.
+        url:
+          type: string
+    SubscriptionToken:
+      type: object
+      required:
+        - id
+        - name
+        - status
+        - createdAt
+        - updatedAt
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        status:
+          type: string
+          enum:
+            - active
+            - disabled
+        expiresAt:
+          type: string
+          format: date-time
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+    PairingCodeCreateRequest:
+      type: object
+      properties:
+        nodeName:
+          type: string
+          minLength: 1
+          maxLength: 80
+        domain:
+          type: string
+          minLength: 1
+          maxLength: 253
+        ttlMinutes:
+          type: integer
+          minimum: 5
+          maximum: 60
+    PairingCodeResult:
+      type: object
+      required:
+        - pairing
+        - code
+      properties:
+        pairing:
+          $ref: '#/components/schemas/PairingCode'
+        code:
+          type: string
+          description: Returned only once when the pairing code is created.
+    PairingAcceptRequest:
+      type: object
+      required:
+        - exitDomain
+        - code
+      properties:
+        exitDomain:
+          type: string
+          minLength: 1
+          maxLength: 253
+        code:
+          type: string
+    PairingAcceptResult:
+      type: object
+      required:
+        - node
+        - pair
+        - job
+      properties:
+        node:
+          $ref: '#/components/schemas/CascadeNode'
+        pair:
+          $ref: '#/components/schemas/CascadePair'
+        job:
+          $ref: '#/components/schemas/Job'
+    PairingExchangeRequest:
+      type: object
+      required:
+        - code
+        - entryNode
+      properties:
+        code:
+          type: string
+        entryNode:
+          $ref: '#/components/schemas/PairingPeerNode'
+    PairingExchangeResult:
+      type: object
+      required:
+        - exitNode
+        - pair
+        - job
+      properties:
+        exitNode:
+          $ref: '#/components/schemas/PairingPeerNode'
+        pair:
+          $ref: '#/components/schemas/CascadePair'
+        job:
+          $ref: '#/components/schemas/Job'
+    PairingPeerNode:
+      type: object
+      required:
+        - nodeId
+        - nodeName
+        - domain
+        - publicKey
+        - fingerprint
+      properties:
+        nodeId:
+          type: string
+        nodeName:
+          type: string
+          minLength: 1
+          maxLength: 80
+        domain:
+          type: string
+          minLength: 1
+          maxLength: 253
+        publicKey:
+          type: string
+        fingerprint:
+          type: string
+    PairingCode:
+      type: object
+      required:
+        - id
+        - nodeId
+        - nodeName
+        - domain
+        - status
+        - expiresAt
+        - createdAt
+      properties:
+        id:
+          type: string
+        nodeId:
+          type: string
+        nodeName:
+          type: string
+        domain:
+          type: string
+        status:
+          type: string
+          enum:
+            - active
+            - used
+            - revoked
+            - expired
+        expiresAt:
+          type: string
+          format: date-time
+        createdAt:
+          type: string
+          format: date-time
+    CascadeNodeList:
+      type: object
+      required:
+        - nodes
+        - pairs
+      properties:
+        nodes:
+          type: array
+          items:
+            $ref: '#/components/schemas/CascadeNode'
+        pairs:
+          type: array
+          items:
+            $ref: '#/components/schemas/CascadePair'
+    CascadeNodeResult:
+      type: object
+      required:
+        - node
+      properties:
+        node:
+          $ref: '#/components/schemas/CascadeNode'
+    CascadeNodeDeleteResult:
+      type: object
+      required:
+        - deleted
+      properties:
+        deleted:
+          type: boolean
+    CascadeNodeUpdateRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 80
+        status:
+          type: string
+          enum:
+            - pending
+            - trusted
+            - disabled
+    CascadeNode:
+      type: object
+      required:
+        - id
+        - name
+        - domain
+        - status
+        - role
+        - online
+        - latencyMs
+        - throughputMbps
+        - createdAt
+        - updatedAt
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        domain:
+          type: string
+        status:
+          type: string
+        role:
+          type: string
+        trustKeyFingerprint:
+          type: string
+        online:
+          type: boolean
+        latencyMs:
+          type: integer
+        throughputMbps:
+          type: number
+        lastError:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+    CascadePair:
+      type: object
+      required:
+        - id
+        - sourceNodeId
+        - targetNodeId
+        - status
+        - configState
+        - createdAt
+        - updatedAt
+      properties:
+        id:
+          type: string
+        sourceNodeId:
+          type: string
+        targetNodeId:
+          type: string
+        status:
+          type: string
+        configState:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+    CascadeConfigPlanResult:
+      type: object
+      required:
+        - pair
+        - plan
+      properties:
+        pair:
+          $ref: '#/components/schemas/CascadePair'
+        plan:
+          $ref: '#/components/schemas/CascadeConfigPlan'
+    CascadeConfigApplyRequest:
+      type: object
+      required:
+        - confirm
+      properties:
+        confirm:
+          type: boolean
+          description: Must be true before OMO writes backend-generated cascade configuration.
+    CascadeConfigApplyResult:
+      type: object
+      required:
+        - pair
+        - plan
+        - job
+      properties:
+        pair:
+          $ref: '#/components/schemas/CascadePair'
+        plan:
+          $ref: '#/components/schemas/CascadeConfigPlan'
+        job:
+          $ref: '#/components/schemas/Job'
+    CascadeConfigPlan:
+      type: object
+      required:
+        - pairId
+        - sourceNodeId
+        - targetNodeId
+        - version
+        - generatedAt
+        - configPath
+        - warnings
+        - summary
+      properties:
+        pairId:
+          type: string
+        sourceNodeId:
+          type: string
+        targetNodeId:
+          type: string
+        version:
+          type: string
+        generatedAt:
+          type: string
+          format: date-time
+        configPath:
+          type: string
+        backupPath:
+          type: string
+        warnings:
+          type: array
+          items:
+            type: string
+        summary:
+          type: string
+        preview:
+          type: object
+          additionalProperties: true
+    CascadeHealthSampleResult:
+      type: object
+      required:
+        - nodes
+        - pairs
+        - samples
+        - job
+      properties:
+        nodes:
+          type: array
+          items:
+            $ref: '#/components/schemas/CascadeNode'
+        pairs:
+          type: array
+          items:
+            $ref: '#/components/schemas/CascadePair'
+        samples:
+          type: array
+          items:
+            $ref: '#/components/schemas/CascadeHealthSample'
+        job:
+          $ref: '#/components/schemas/Job'
+    CascadeHealthSample:
+      type: object
+      required:
+        - nodeId
+        - status
+        - online
+        - latencyMs
+        - throughputMbps
+        - sampledAt
+      properties:
+        nodeId:
+          type: string
+        status:
+          type: string
+          enum:
+            - online
+            - offline
+            - skipped
+        online:
+          type: boolean
+        latencyMs:
+          type: integer
+        throughputMbps:
+          type: number
+        lastError:
+          type: string
+        sampledAt:
+          type: string
+          format: date-time
+    BackupRecord:
+      type: object
+      required:
+        - id
+        - status
+        - path
+        - createdAt
+      properties:
+        id:
+          type: string
+        status:
+          type: string
+          enum:
+            - running
+            - ready
+            - failed
+        path:
+          type: string
+        checksum:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        completedAt:
+          type: string
+          format: date-time
+    BackupListResult:
+      type: object
+      required:
+        - backups
+      properties:
+        backups:
+          type: array
+          items:
+            $ref: '#/components/schemas/BackupRecord'
+    BackupCreateResult:
+      type: object
+      required:
+        - backup
+        - job
+      properties:
+        backup:
+          $ref: '#/components/schemas/BackupRecord'
+        job:
+          $ref: '#/components/schemas/Job'
+    BackupRestoreRequest:
+      type: object
+      required:
+        - confirm
+      properties:
+        confirm:
+          type: boolean
+    BackupRestoreResult:
+      type: object
+      required:
+        - backup
+        - job
+        - restored
+      properties:
+        backup:
+          $ref: '#/components/schemas/BackupRecord'
+        job:
+          $ref: '#/components/schemas/Job'
+        restored:
+          type: boolean
+    AuditLog:
+      type: object
+      required:
+        - id
+        - action
+        - resourceType
+        - details
+        - createdAt
+      properties:
+        id:
+          type: string
+        actorAdminId:
+          type: string
+        action:
+          type: string
+        resourceType:
+          type: string
+        resourceId:
+          type: string
+        details:
+          type: object
+          additionalProperties: true
+        createdAt:
+          type: string
+          format: date-time
+    AuditListResult:
+      type: object
+      required:
+        - logs
+      properties:
+        logs:
+          type: array
+          items:
+            $ref: '#/components/schemas/AuditLog'
+    UpdateCheckResult:
+      type: object
+      required:
+        - configured
+        - currentVersion
+        - updateAvailable
+        - summary
+        - checkedAt
+        - platform
+      properties:
+        configured:
+          type: boolean
+        currentVersion:
+          type: string
+        latestVersion:
+          type: string
+        updateAvailable:
+          type: boolean
+        channel:
+          type: string
+        summary:
+          type: string
+        manifestUrl:
+          type: string
+          format: uri
+        checksumSha256:
+          type: string
+        signature:
+          type: string
+        artifactUrl:
+          type: string
+          format: uri
+        checkedAt:
+          type: string
+          format: date-time
+        platform:
+          type: string
+    UpdateApplyRequest:
+      type: object
+      required:
+        - confirm
+      properties:
+        confirm:
+          type: boolean
+    UpdateRollbackRequest:
+      type: object
+      required:
+        - confirm
+      properties:
+        confirm:
+          type: boolean
+    UpdateJobResult:
+      type: object
+      required:
+        - job
+        - applied
+        - rolledBack
+      properties:
+        job:
+          $ref: '#/components/schemas/Job'
+        version:
+          type: string
+        previousVersion:
+          type: string
+        backupId:
+          type: string
+        applied:
+          type: boolean
+        rolledBack:
+          type: boolean
+        artifactUrl:
+          type: string
+          format: uri
+        checksumSha256:
+          type: string
+    DiagnosticsRunResult:
+      type: object
+      required:
+        - job
+        - report
+      properties:
+        job:
+          $ref: '#/components/schemas/Job'
+        report:
+          $ref: '#/components/schemas/DiagnosticReport'
+    DiagnosticsLatestResult:
+      type: object
+      required:
+        - report
+      properties:
+        report:
+          anyOf:
+            - $ref: '#/components/schemas/DiagnosticReport'
+            - type: 'null'
+        latestJob:
+          anyOf:
+            - $ref: '#/components/schemas/Job'
+            - type: 'null'
+    SettingsResponse:
+      type: object
+      required:
+        - diagnosticsExternalProvider
+      properties:
+        diagnosticsExternalProvider:
+          $ref: '#/components/schemas/DiagnosticsExternalProviderSettings'
+        updateManifestUrl:
+          type: string
+          description: Operator-configured HTTPS release manifest URL. Empty when not configured.
+    SettingsUpdateRequest:
+      type: object
+      properties:
+        diagnosticsExternalProvider:
+          $ref: '#/components/schemas/DiagnosticsExternalProviderUpdate'
+        updateManifestUrl:
+          type: string
+          description: HTTPS release manifest URL. Send an empty string to clear it.
+    DiagnosticsExternalProviderSettings:
+      type: object
+      required:
+        - enabled
+        - name
+        - endpointUrl
+        - timeoutSeconds
+        - apiKeyConfigured
+      properties:
+        enabled:
+          type: boolean
+        name:
+          type: string
+          maxLength: 80
+        endpointUrl:
+          type: string
+          format: uri
+          description: Operator-configured HTTPS provider endpoint. It is not called unless enabled.
+        timeoutSeconds:
+          type: integer
+          minimum: 1
+          maximum: 10
+        apiKeyConfigured:
+          type: boolean
+          description: Indicates whether a credential is saved; the secret value is never returned.
+    DiagnosticsExternalProviderUpdate:
+      type: object
+      required:
+        - enabled
+        - name
+        - endpointUrl
+        - timeoutSeconds
+      properties:
+        enabled:
+          type: boolean
+        name:
+          type: string
+          maxLength: 80
+        endpointUrl:
+          type: string
+          format: uri
+        timeoutSeconds:
+          type: integer
+          minimum: 1
+          maximum: 10
+        apiKey:
+          type: string
+          writeOnly: true
+        clearApiKey:
+          type: boolean
+    DiagnosticReport:
+      type: object
+      required:
+        - id
+        - status
+        - summary
+        - checks
+        - system
+        - createdAt
+      properties:
+        id:
+          type: string
+        status:
+          type: string
+          enum:
+            - ok
+            - warning
+            - error
+        summary:
+          type: string
+        checks:
+          type: array
+          items:
+            $ref: '#/components/schemas/DiagnosticCheck'
+        system:
+          $ref: '#/components/schemas/SystemSnapshot'
+        createdAt:
+          type: string
+          format: date-time
+    DiagnosticCheck:
+      type: object
+      required:
+        - id
+        - label
+        - status
+        - message
+      properties:
+        id:
+          type: string
+        label:
+          type: string
+        status:
+          type: string
+          enum:
+            - ok
+            - warning
+            - error
+        message:
+          type: string
+        evidence:
+          type: string
+    SystemSnapshot:
+      type: object
+      required:
+        - hostname
+        - os
+        - architecture
+        - cpuCount
+        - goVersion
+        - processId
+        - memoryAllocMb
+        - memorySystemMb
+      properties:
+        hostname:
+          type: string
+        os:
+          type: string
+        architecture:
+          type: string
+        cpuCount:
+          type: integer
+        goVersion:
+          type: string
+        processId:
+          type: integer
+        memoryAllocMb:
+          type: integer
+        memorySystemMb:
+          type: integer

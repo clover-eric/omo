@@ -1,0 +1,31 @@
+# Build output
+/dist/
+/release-dist/
+/cmd/omo/web/
+!/cmd/omo/web/.gitkeep
+/data/
+/internal/api/data/
+/phase1-sim/
+/phase2-sim/
+
+# Frontend dependencies and generated files
+/web/node_modules/
+/web/.svelte-kit/
+/web/build/
+
+# Local environment
+.tools/
+.env
+.env.*
+!.env.example
+
+# Logs and temporary files
+*.log
+*.tmp
+*.bak
+
+# OS/editor noise
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/

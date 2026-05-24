@@ -1,0 +1,84 @@
+version: 2
+
+project_name: omo
+
+before:
+  hooks:
+    - pnpm --dir web install --frozen-lockfile
+    - pnpm --dir web build
+    - go mod tidy
+
+builds:
+  - id: omo
+    main: ./cmd/omo
+    binary: omo
+    env:
+      - CGO_ENABLED=0
+    goos:
+      - linux
+    goarch:
+      - amd64
+      - arm64
+    ldflags:
+      - -s -w
+      - -X omo/internal/version.Version={{.Version}}
+      - -X omo/internal/version.Commit={{.Commit}}
+      - -X omo/internal/version.Date={{.Date}}
+  - id: omoctl
+    main: ./cmd/omoctl
+    binary: omoctl
+    env:
+      - CGO_ENABLED=0
+    goos:
+      - linux
+    goarch:
+      - amd64
+      - arm64
+    ldflags:
+      - -s -w
+      - -X omo/internal/version.Version={{.Version}}
+      - -X omo/internal/version.Commit={{.Commit}}
+      - -X omo/internal/version.Date={{.Date}}
+
+archives:
+  - id: linux
+    ids:
+      - omo
+      - omoctl
+    formats:
+      - tar.gz
+    name_template: "{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
+    files:
+      - AGENTS.md
+      - docs/PROJECT_SPEC.md
+      - docs/OPERATIONS.md
+      - docs/SECURITY.md
+      - scripts/install.sh
+      - deploy/systemd/omo.service
+
+checksum:
+  name_template: "checksums.txt"
+  algorithm: sha256
+
+sboms:
+  - id: archive
+    artifacts: archive
+  - id: binary
+    artifacts: binary
+
+signs:
+  - cmd: cosign
+    artifacts: checksum
+    signature: "${artifact}.sigstore.json"
+    args:
+      - sign-blob
+      - --yes
+      - --bundle=${signature}
+      - ${artifact}
+
+release:
+  github:
+    owner: omo
+    name: omo
+  draft: true
+  prerelease: auto

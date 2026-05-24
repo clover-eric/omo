@@ -1,0 +1,109 @@
+# OMO Tasks
+
+## Phase 0: Scaffold And Standards
+
+- [x] Create required repository directories.
+- [x] Create `AGENTS.md`.
+- [x] Create baseline project docs.
+- [x] Create OpenAPI 3.1 contract.
+- [x] Create SQLite migration baseline.
+- [x] Create Go module and backend health endpoint.
+- [x] Embed SvelteKit static assets in Go server.
+- [x] Create SvelteKit static frontend shell.
+- [x] Create Makefile.
+- [x] Add initial deploy script/unit placeholders.
+- [x] Run Phase 0 verification commands.
+
+## Phase 1: Installer And Bootstrap
+
+- [x] Implement initial `scripts/install.sh` dry-run checks.
+- [x] Implement initialization token.
+- [x] Implement bootstrap state machine.
+- [x] Implement admin creation.
+- [x] Implement jobs and SSE.
+- [x] Expand installer from dry-run skeleton to real package/user/directory/systemd preparation.
+- [x] Add one-command new-server initialization link with temporary systemd service.
+- [x] Add root-only recovery file for the one-time initialization link.
+- [x] Add installer time-sync check, firewall guidance, and temporary service health verification.
+- [x] Add automatic switch from temporary initialization service to regular panel service after bootstrap.
+- [x] Add bootstrap retry controls for failed jobs.
+- [x] Add login/logout flow using stored sessions.
+- [x] Add CSRF protection middleware for browser state-changing APIs.
+- [x] Add persistent login rate-limit records for restart-safe lockout.
+
+## Phase 2: Domain, Caddy, HTTPS
+
+- [x] Implement domain resolution checks.
+- [x] Implement port checks.
+- [x] Implement Caddy config generation and reload.
+- [x] Implement certificate status reporting.
+- [x] Preserve old Caddy config on reload failure.
+- [x] Return readable domain failure messages.
+- [x] Add installer Caddy detection and installation preparation.
+- [x] Add expected server IP support for domain verification.
+- [x] Enforce HTTPS-domain-only dashboard access after initialization.
+- [x] Add explicit degraded temporary-entry state when Caddy is unavailable.
+- [x] Add read-only target-server validation script for the ACME acceptance check.
+- [ ] Validate full ACME issuance on a real target server with public domain and reachable 80/443.
+
+## Phase 3: sing-box And Default Services
+
+- [x] Implement sing-box version/install detection.
+- [x] Implement service profile templates.
+- [x] Cover the MVP service profile set: standard, high throughput, broad compatibility, lightweight fallback, and mobile optimized access.
+- [x] Implement persisted service instance list/create/update APIs declared by OpenAPI.
+- [x] Implement system overview API declared by OpenAPI.
+- [x] Implement config apply and rollback.
+- [x] Synchronize service instance state through config apply and rollback jobs.
+- [x] Implement dashboard service cards.
+- [x] Add `/services` frontend route for the service library.
+
+## Phase 4: Smart Subscriptions And QR Import
+
+- [x] Implement subscription token create/list/rotate.
+- [x] Implement multi-format subscription output.
+- [x] Include active managed service metadata in backend-generated subscription descriptors.
+- [x] Implement adaptive import page for unknown clients.
+- [x] Implement QR code output.
+- [x] Add configuration distribution UI for token create/rotate, import URL copy, and QR preview.
+
+## Phase 5: Server Checkup
+
+- [x] Add diagnostics OpenAPI response schemas.
+- [x] Implement durable server checkup job with SSE events.
+- [x] Persist and return latest diagnostic report.
+- [x] Add initial local runtime, CPU, memory, and loopback checks.
+- [x] Add `/diagnostics` frontend page for running checkups and reading reports.
+- [x] Add DNS, TLS, port, and access-core health providers.
+- [x] Add optional operator-configured external provider support.
+
+## Phase 6: Cascade Nodes
+
+- [x] Add cascade pairing OpenAPI request and response schemas.
+- [x] Implement short-lived one-time pairing code creation with hashed storage.
+- [x] Implement pairing acceptance with signature verification, trust record creation, durable job state, and audit log entry.
+- [x] Implement cascade node list, update, and delete APIs.
+- [x] Add `/cascade` frontend page for pairing code creation, acceptance, trust records, and node revocation.
+- [x] Implement cross-server HTTPS handshake between two running OMO instances.
+- [x] Generate one-hop cascade configuration and require operator confirmation before apply.
+- [x] Add live cascade link health sampling for latency, throughput, online state, and latest error.
+
+## Phase 7: Updates, Backups, Hardening, Release
+
+- [x] Add backup/restore OpenAPI request and response schemas.
+- [x] Implement durable backup creation with SQLite snapshot archive and checksum.
+- [x] Implement backup listing API.
+- [x] Implement restore API with explicit operator confirmation and checksum verification.
+- [x] Add backup/restore store, service, and router tests.
+- [x] Add broader managed config and runtime metadata coverage to backup archives.
+- [x] Add certificate metadata coverage to backup archives without private key material.
+- [x] Add backup encryption at rest.
+- [x] Implement online update check.
+- [x] Implement update apply with pre-update backup, checksum/signature verification, health check, and automatic rollback.
+- [x] Implement update rollback API.
+- [x] Implement audit log listing API.
+- [x] Add `/logs` frontend page for audit log review.
+- [x] Add `/settings` frontend page for backup/restore, update operations, and diagnostics provider settings.
+- [x] Add update manifest URL management to the settings API.
+- [x] Add GoReleaser configuration, checksums, signatures, and SBOM generation.
+- [x] Integrate comprehensive security scans.
