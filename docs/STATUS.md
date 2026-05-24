@@ -40,6 +40,7 @@ Phase 7: backup/restore, audit listing, online update, release automation, and s
 - New-server initialization optimized: installer now generates a random temporary initialization port, a one-time token, and a direct `http://SERVER_IP:RANDOM_PORT/init?token=...` link.
 - Installer writes `omo-init.service` for the temporary HTTP initialization entry and `omo-init-watch.service` to switch to the regular loopback-only `omo.service` after the backend writes the bootstrap ready marker and the regular service health check passes.
 - Installer writes a root-only `/etc/omo/init-link.txt` recovery file for the temporary initialization link and removes it after successful handoff.
+- Installer reruns stop existing OMO regular, temporary initialization, and watcher services before writing fresh units, tokens, and recovery links so failed target-server bootstrap attempts can be retried cleanly.
 - Installer checks system time synchronization, verifies the temporary initialization service local health endpoint, and prints firewall/security-group guidance for the temporary port plus 80/443.
 - Installer prepares Caddy with an OMO-managed import directory so the default public entry is empty until domain verification applies the HTTPS panel entry.
 - Bootstrap success now returns `https://{domain}/dashboard` and the `/init` page redirects there after the final entry configuration step.
@@ -504,6 +505,10 @@ Select-String -Path internal\**\*.go,cmd\**\*.go,web\src\**\*.ts,web\src\**\*.sv
 - 2026-05-25: Improved bootstrap Phase 2 failure reporting so Caddy configuration errors are preserved in initialization events and no longer collapse into a generic startup failure.
 - 2026-05-25: Refreshed Linux bootstrap archives after the Caddyfile adapter fix.
 - 2026-05-25: `go test ./...` and `pnpm --dir web build` passed after the Caddyfile adapter fix.
+- 2026-05-25: Target-server diagnostics for `hk2.i3.pub` confirmed DNS resolved to the server IP while TCP 80/443 were not listening and the OMO-managed Caddy snippet remained the placeholder, indicating the server was still running a pre-fix temporary bootstrap state.
+- 2026-05-25: Hardened `scripts/install.sh` for repeatable target-server testing by stopping any existing `omo.service`, `omo-init.service`, and `omo-init-watch.service` before writing fresh units, initialization token, and recovery link.
+- 2026-05-25: Refreshed Linux bootstrap archives and `deploy/bootstrap/checksums.txt` after the repeatable installer recovery fix.
+- 2026-05-25: `sh -n scripts/install.sh`, `go test ./...`, `pnpm --dir web build`, archive content checks, and `git diff --check` passed after the repeatable installer recovery fix. The frontend build still reports only the existing Svelte `<svelte:component>` deprecation warning in the diagnostics page.
 - `bash -n scripts/install.sh`: passed.
 - `scripts/install.sh --dry-run`: passed with sqlite/Caddy preparation, time-sync check, root-only initialization env/link files, temporary init service, init watcher, firewall guidance, and direct one-time initialization link output.
 - `/mnt/c/Program Files/Go/bin/go.exe test ./...`: passed.

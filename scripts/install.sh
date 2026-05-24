@@ -575,6 +575,22 @@ prepare_paths() {
   run rm -f "$INIT_LINK_PATH"
 }
 
+stop_existing_omo_services() {
+  if ! command -v systemctl >/dev/null 2>&1; then
+    return
+  fi
+
+  log "service recovery: stopping existing OMO services before writing fresh units"
+  if [[ "$DRY_RUN" == "true" ]]; then
+    log "dry-run: would stop omo-init-watch.service, omo-init.service, and omo.service if active"
+    return
+  fi
+
+  systemctl disable --now omo-init-watch.service >/dev/null 2>&1 || true
+  systemctl disable --now omo-init.service >/dev/null 2>&1 || true
+  systemctl disable --now omo.service >/dev/null 2>&1 || true
+}
+
 main() {
   local arch os_name
   arch="$(detect_arch)"
@@ -614,6 +630,7 @@ main() {
     else
       log "root: ok"
     fi
+    stop_existing_omo_services
     prepare_paths
     install_caddy
     prepare_caddy_paths
@@ -638,6 +655,7 @@ main() {
     exit 0
   fi
 
+  stop_existing_omo_services
   prepare_paths
   install_caddy
   prepare_caddy_paths

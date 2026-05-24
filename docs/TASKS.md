@@ -27,6 +27,7 @@
 - [x] Add installer time-sync check, firewall guidance, and temporary service health verification.
 - [x] Add automatic switch from temporary initialization service to regular panel service after bootstrap.
 - [x] Add bootstrap retry controls for failed jobs.
+- [x] Make installer reruns stop stale OMO systemd services before writing a fresh initialization port, token, and recovery link.
 - [x] Add login/logout flow using stored sessions.
 - [x] Add CSRF protection middleware for browser state-changing APIs.
 - [x] Add persistent login rate-limit records for restart-safe lockout.
