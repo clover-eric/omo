@@ -4,7 +4,7 @@ set -euo pipefail
 APP_NAME="omo"
 CHANNEL="stable"
 DRY_RUN="false"
-VERSION="latest"
+OMO_VERSION="latest"
 RELEASE_OWNER="${OMO_RELEASE_OWNER:-clover-eric}"
 RELEASE_REPO="${OMO_RELEASE_REPO:-omo}"
 
@@ -66,7 +66,7 @@ while [[ $# -gt 0 ]]; do
       shift 2
       ;;
     --version)
-      VERSION="${2:-}"
+      OMO_VERSION="${2:-}"
       shift 2
       ;;
     --dry-run)
@@ -97,25 +97,29 @@ detect_arch() {
 }
 
 detect_os() {
+  local os_id os_version_id os_pretty_name
   if [[ ! -r /etc/os-release ]]; then
     fail "/etc/os-release is required"
   fi
   . /etc/os-release
-  case "${ID:-}" in
+  os_id="${ID:-}"
+  os_version_id="${VERSION_ID:-0}"
+  os_pretty_name="${PRETTY_NAME:-$os_id}"
+  case "$os_id" in
     ubuntu)
-      version_at_least "${VERSION_ID:-0}" "20.04" || fail "Ubuntu 20.04+ is required"
+      version_at_least "$os_version_id" "20.04" || fail "Ubuntu 20.04+ is required"
       ;;
     debian)
-      version_at_least "${VERSION_ID:-0}" "11" || fail "Debian 11+ is required"
+      version_at_least "$os_version_id" "11" || fail "Debian 11+ is required"
       ;;
     almalinux)
-      version_at_least "${VERSION_ID:-0}" "8" || fail "AlmaLinux 8+ is required"
+      version_at_least "$os_version_id" "8" || fail "AlmaLinux 8+ is required"
       ;;
     *)
-      fail "unsupported distribution: ${ID:-unknown}"
+      fail "unsupported distribution: ${os_id:-unknown}"
       ;;
   esac
-  printf '%s %s' "${PRETTY_NAME:-$ID}" "${VERSION_ID:-}"
+  printf '%s %s' "$os_pretty_name" "$os_version_id"
 }
 
 version_at_least() {
@@ -129,14 +133,16 @@ check_command() {
 }
 
 install_sqlite() {
+  local os_id
   if command -v sqlite3 >/dev/null 2>&1; then
     log "sqlite: found $(sqlite3 -version | awk '{print $1}')"
     return
   fi
 
   . /etc/os-release
+  os_id="${ID:-}"
   log "sqlite: not found; preparing installation"
-  case "${ID:-}" in
+  case "$os_id" in
     ubuntu|debian)
       check_command apt-get
       run apt-get update
@@ -147,7 +153,7 @@ install_sqlite() {
       run dnf install -y sqlite
       ;;
     *)
-      fail "unsupported distribution for automatic sqlite installation: ${ID:-unknown}"
+      fail "unsupported distribution for automatic sqlite installation: ${os_id:-unknown}"
       ;;
   esac
 }
@@ -342,14 +348,16 @@ UNIT
 }
 
 install_caddy() {
+  local os_id
   if command -v caddy >/dev/null 2>&1; then
     log "caddy: found $(caddy version 2>/dev/null | head -n1)"
     return
   fi
 
   . /etc/os-release
+  os_id="${ID:-}"
   log "caddy: not found; preparing installation"
-  case "${ID:-}" in
+  case "$os_id" in
     ubuntu|debian)
       local keyring source_file disabled_source
       keyring="/usr/share/keyrings/caddy-stable-archive-keyring.gpg"
@@ -380,7 +388,7 @@ install_caddy() {
       run dnf install -y caddy
       ;;
     *)
-      fail "unsupported distribution for automatic Caddy installation: ${ID:-unknown}"
+      fail "unsupported distribution for automatic Caddy installation: ${os_id:-unknown}"
       ;;
   esac
 }
@@ -512,7 +520,7 @@ install_binary() {
   local arch url tmp checksum_url release_tag archive_version archive_name
   arch="$(detect_arch)"
   tmp="$(mktemp -d)"
-  release_tag="$(resolve_omo_release_tag "$VERSION")"
+  release_tag="$(resolve_omo_release_tag "$OMO_VERSION")"
   archive_version="${release_tag#v}"
   archive_name="omo_${archive_version}_linux_${arch}.tar.gz"
   url="https://github.com/${RELEASE_OWNER}/${RELEASE_REPO}/releases/download/${release_tag}/${archive_name}"
@@ -564,7 +572,7 @@ main() {
   os_name="$(detect_os)"
 
   log "channel: ${CHANNEL}"
-  log "version: ${VERSION}"
+  log "version: ${OMO_VERSION}"
   log "architecture: ${arch}"
   log "system: ${os_name}"
 

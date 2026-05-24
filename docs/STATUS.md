@@ -486,6 +486,8 @@ Select-String -Path internal\**\*.go,cmd\**\*.go,web\src\**\*.ts,web\src\**\*.sv
 - 2026-05-25: `sh -n scripts/install.sh` passed after the Caddy keyring installer fix.
 - 2026-05-25: Hardened `scripts/install.sh` for partially failed Caddy apt setup by repairing a pre-existing `caddy-stable.list` source when its keyring is missing before the next `apt-get update`.
 - 2026-05-25: `sh -n scripts/install.sh` and `git diff --check` passed after the partial Caddy apt setup recovery fix.
+- 2026-05-25: Fixed `scripts/install.sh` OMO release version handling so sourcing `/etc/os-release` cannot overwrite the requested OMO `--version latest` value with the operating system `VERSION` string.
+- 2026-05-25: `sh -n scripts/install.sh` and `git diff --check` passed after the OMO version variable isolation fix.
 - `bash -n scripts/install.sh`: passed.
 - `scripts/install.sh --dry-run`: passed with sqlite/Caddy preparation, time-sync check, root-only initialization env/link files, temporary init service, init watcher, firewall guidance, and direct one-time initialization link output.
 - `/mnt/c/Program Files/Go/bin/go.exe test ./...`: passed.
