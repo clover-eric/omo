@@ -351,9 +351,20 @@ install_caddy() {
   log "caddy: not found; preparing installation"
   case "${ID:-}" in
     ubuntu|debian)
-      local keyring
+      local keyring source_file disabled_source
       keyring="/usr/share/keyrings/caddy-stable-archive-keyring.gpg"
+      source_file="/etc/apt/sources.list.d/caddy-stable.list"
+      disabled_source="${source_file}.omo-disabled"
       check_command apt-get
+      if [[ -f "$source_file" && ! -f "$keyring" ]]; then
+        log "caddy: existing apt source is missing its keyring; repairing before apt update"
+        if command -v gpg >/dev/null 2>&1; then
+          run install -d -m 0755 /usr/share/keyrings
+          run sh -c "curl -fsSL https://dl.cloudsmith.io/public/caddy/stable/gpg.key | gpg --dearmor > '${keyring}.tmp' && install -m 0644 '${keyring}.tmp' '${keyring}' && rm -f '${keyring}.tmp'"
+        else
+          run mv "$source_file" "$disabled_source"
+        fi
+      fi
       run apt-get update
       run apt-get install -y debian-keyring debian-archive-keyring apt-transport-https gnupg
       run install -d -m 0755 /usr/share/keyrings
