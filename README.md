@@ -31,7 +31,7 @@ Install a specific release tag:
 curl -fsSL https://raw.githubusercontent.com/clover-eric/omo/main/scripts/install.sh | sudo bash -s -- --version v0.1.0
 ```
 
-The installer prepares the `omo` system user, required directories, SQLite, Caddy, sing-box, systemd units, and a temporary initialization entry. Release downloads use GitHub Releases from `clover-eric/omo`; publish a release first when installing from a clean server.
+The installer prepares the `omo` system user, required directories, SQLite, Caddy, sing-box, systemd units, and a temporary initialization entry. Release downloads use GitHub Releases from `clover-eric/omo`. If no latest release exists yet, `--version latest` falls back to the main-branch bootstrap snapshot under `deploy/bootstrap/` for early server testing.
 
 ## First Initialization
 

@@ -520,11 +520,20 @@ install_binary() {
   local arch url tmp checksum_url release_tag archive_version archive_name
   arch="$(detect_arch)"
   tmp="$(mktemp -d)"
-  release_tag="$(resolve_omo_release_tag "$OMO_VERSION")"
-  archive_version="${release_tag#v}"
-  archive_name="omo_${archive_version}_linux_${arch}.tar.gz"
-  url="https://github.com/${RELEASE_OWNER}/${RELEASE_REPO}/releases/download/${release_tag}/${archive_name}"
-  checksum_url="https://github.com/${RELEASE_OWNER}/${RELEASE_REPO}/releases/download/${release_tag}/checksums.txt"
+  if release_tag="$(resolve_omo_release_tag "$OMO_VERSION")"; then
+    archive_version="${release_tag#v}"
+    archive_name="omo_${archive_version}_linux_${arch}.tar.gz"
+    url="https://github.com/${RELEASE_OWNER}/${RELEASE_REPO}/releases/download/${release_tag}/${archive_name}"
+    checksum_url="https://github.com/${RELEASE_OWNER}/${RELEASE_REPO}/releases/download/${release_tag}/checksums.txt"
+  elif [[ "$OMO_VERSION" == "latest" ]]; then
+    archive_version="bootstrap"
+    archive_name="omo_${archive_version}_linux_${arch}.tar.gz"
+    url="https://raw.githubusercontent.com/${RELEASE_OWNER}/${RELEASE_REPO}/main/deploy/bootstrap/${archive_name}"
+    checksum_url="https://raw.githubusercontent.com/${RELEASE_OWNER}/${RELEASE_REPO}/main/deploy/bootstrap/checksums.txt"
+    log "latest release not found; using main branch bootstrap snapshot"
+  else
+    fail "could not resolve OMO release tag: ${OMO_VERSION}"
+  fi
   log "download: $url"
   run curl -fsSL "$url" -o "$tmp/$archive_name"
   run curl -fsSL "$checksum_url" -o "$tmp/checksums.txt"
@@ -550,7 +559,7 @@ resolve_omo_release_tag() {
     return
   fi
   tag="$(curl -fsSL --max-time 8 "https://api.github.com/repos/${RELEASE_OWNER}/${RELEASE_REPO}/releases/latest" 2>/dev/null | sed -n 's/.*"tag_name"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p' | head -n1 || true)"
-  [[ -n "$tag" ]] || fail "could not resolve latest OMO release tag"
+  [[ -n "$tag" ]] || return 1
   printf '%s' "$tag"
 }
 

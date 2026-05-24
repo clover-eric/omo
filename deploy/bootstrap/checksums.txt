@@ -1,0 +1,2 @@
+8cfcfa1f51f8d99347529f21e9c94e13661c2218341a90dc8ec5d8867dbf2ce8  omo_bootstrap_linux_amd64.tar.gz
+463a182a96e8eae338c018bca29317a0fa983796e50a7b9d300fedde3ba83c8e  omo_bootstrap_linux_arm64.tar.gz
