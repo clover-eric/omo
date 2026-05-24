@@ -107,3 +107,4 @@
 - [x] Add update manifest URL management to the settings API.
 - [x] Add GoReleaser configuration, checksums, signatures, and SBOM generation.
 - [x] Integrate comprehensive security scans.
+- [x] Add README and operator lifecycle commands for one-command install, upgrade, and safe uninstall.

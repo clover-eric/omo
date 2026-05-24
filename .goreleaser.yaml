@@ -54,6 +54,8 @@ archives:
       - docs/OPERATIONS.md
       - docs/SECURITY.md
       - scripts/install.sh
+      - scripts/upgrade.sh
+      - scripts/uninstall.sh
       - deploy/systemd/omo.service
 
 checksum:
@@ -78,7 +80,7 @@ signs:
 
 release:
   github:
-    owner: omo
+    owner: clover-eric
     name: omo
   draft: true
   prerelease: auto

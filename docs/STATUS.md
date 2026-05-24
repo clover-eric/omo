@@ -112,6 +112,11 @@ Phase 7: backup/restore, audit listing, online update, release automation, and s
 - `/services` frontend route now aliases the service library console so the implemented page set matches the product page map while `/dashboard` remains the post-initialization entry.
 - Main console navigation now includes service library, audit logs, and settings across the dashboard, distribution, diagnostics, and cascade pages.
 - `.goreleaser.yaml` now defines Linux amd64/arm64 release builds for `omo` and `omoctl`, frontend pre-build hooks, archive naming compatible with `scripts/install.sh`, SHA-256 checksums, cosign checksum signing through a `.sigstore.json` bundle, and archive/binary SBOM generation.
+- README.md now provides the primary operator entry point with project overview, one-command install, first initialization, upgrade, safe uninstall, health checks, HTTPS validation, backup/update notes, developer commands, and product-boundary guidance.
+- `scripts/install.sh` now resolves OMO GitHub Releases from `clover-eric/omo`, supports `latest` release tag lookup, installs `omoctl` when present, and uses checksum verification against the actual release archive name.
+- `scripts/upgrade.sh` now provides a one-command upgrade path with current binary backup, release archive checksum verification, service restart, local health validation, and automatic binary restoration on failed validation.
+- `scripts/uninstall.sh` now provides conservative uninstall by default with data preservation, plus explicit `--purge --confirm-purge` for intentional removal of local OMO data, logs, backups, and managed Caddy snippets.
+- `.gitattributes` now pins shell scripts, Markdown, and YAML files to LF line endings so lifecycle scripts remain Linux-server friendly from Windows workspaces.
 - `internal/version` now carries release metadata injected by GoReleaser ldflags, and the main server uses it for health responses, backup manifests, and update checks.
 - `omoctl version` now reports the shared release version, and Makefile targets were added for GoReleaser config validation and local snapshot releases.
 - `scripts/security-scan.sh` now provides a local hardening gate for product-boundary wording, damaged-text detection, Go tests, Go vet, frontend tests/build, and optional GoReleaser, govulncheck, gosec, syft, and cosign checks.
@@ -466,6 +471,17 @@ Select-String -Path internal\**\*.go,cmd\**\*.go,web\src\**\*.ts,web\src\**\*.sv
 - 2026-05-25: MinGit initialized the local repository and the current branch is `main`. Git metadata operations require the project-local MinGit plus `safe.directory=C:/Users/41419/Desktop/omo` in this sandbox.
 - 2026-05-25: Project-local MinGit does not include GNU `make`; `make build` remains a host-tooling gap, while the Makefile-equivalent build steps have passed.
 - 2026-05-25: `scripts/security-scan.sh` was attempted with MinGit `sh.exe`, but the script requires `bash` semantics and a Unix tool PATH; required checks were run individually instead: product-boundary scan, damaged-text scan, `go test ./...`, `go vet ./...`, `pnpm --dir web test`, and `pnpm --dir web build`.
+- 2026-05-25: Added README.md as the operator-facing project entry with one-command install, first initialization recovery, upgrade, conservative uninstall, purge uninstall, service health checks, target HTTPS validation, backup/update notes, developer commands, and product-boundary guidance.
+- 2026-05-25: Added `scripts/upgrade.sh` and `scripts/uninstall.sh`; `scripts/install.sh` now uses the `clover-eric/omo` release repository, resolves the latest release tag, installs `omoctl` when available, and verifies checksums against the actual archive filename.
+- 2026-05-25: Updated `.goreleaser.yaml` to publish releases under `clover-eric/omo` and include the upgrade/uninstall lifecycle scripts in release archives.
+- 2026-05-25: Added `.gitattributes` to keep shell scripts, Markdown, and YAML files on LF line endings for Linux server execution and release packaging.
+- 2026-05-25: `go test ./...` passed with the project-local Go toolchain after the README/lifecycle script update.
+- 2026-05-25: `go vet ./...` passed with the project-local Go toolchain after the README/lifecycle script update.
+- 2026-05-25: `pnpm --dir web test` passed after rerunning outside the sandbox; the first sandbox attempt failed with EPERM while reading the Vitest dependency file.
+- 2026-05-25: `pnpm --dir web build` passed after rerunning outside the sandbox; the first sandbox attempt failed with EPERM while reading the Vite dependency file. The build reported only the existing Svelte deprecated `<svelte:component>` warning in `web/src/routes/diagnostics/+page.svelte`.
+- 2026-05-25: `go build -o dist\omo.exe ./cmd/omo` and `go build -o dist\omoctl.exe ./cmd/omoctl` passed with the project-local Go toolchain after the README/lifecycle script update.
+- 2026-05-25: `sh -n scripts/install.sh scripts/upgrade.sh scripts/uninstall.sh` passed through project-local MinGit `sh.exe`.
+- 2026-05-25: Static product-boundary wording and damaged-text scans returned no source matches after the README/lifecycle script update.
 - `bash -n scripts/install.sh`: passed.
 - `scripts/install.sh --dry-run`: passed with sqlite/Caddy preparation, time-sync check, root-only initialization env/link files, temporary init service, init watcher, firewall guidance, and direct one-time initialization link output.
 - `/mnt/c/Program Files/Go/bin/go.exe test ./...`: passed.

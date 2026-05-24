@@ -5,6 +5,8 @@ APP_NAME="omo"
 CHANNEL="stable"
 DRY_RUN="false"
 VERSION="latest"
+RELEASE_OWNER="${OMO_RELEASE_OWNER:-clover-eric}"
+RELEASE_REPO="${OMO_RELEASE_REPO:-omo}"
 
 INSTALL_DIR="/opt/omo"
 CONFIG_DIR="/etc/omo"
@@ -12,6 +14,7 @@ DATA_DIR="/var/lib/omo"
 LOG_DIR="/var/log/omo"
 BACKUP_DIR="/var/backups/omo"
 BIN_PATH="/usr/local/bin/omo"
+OMOCTL_BIN_PATH="/usr/local/bin/omoctl"
 SING_BOX_BIN_PATH="/usr/local/bin/sing-box"
 INIT_ENV_PATH="/etc/omo/init.env"
 INIT_LINK_PATH="/etc/omo/init-link.txt"
@@ -33,7 +36,7 @@ OMO installer
 Usage:
   install.sh [--channel stable|beta|nightly] [--version VERSION] [--dry-run]
 
-This installer prepares OMO 边界运维管理平台 for authorized server operations.
+This installer prepares OMO for authorized enterprise remote operations.
 USAGE
 }
 
@@ -487,23 +490,47 @@ install_binary() {
   if [[ -x "./dist/omo" ]]; then
     log "using local dist/omo binary"
     run install -m 0755 ./dist/omo "$BIN_PATH"
+    if [[ -x "./dist/omoctl" ]]; then
+      run install -m 0755 ./dist/omoctl "$OMOCTL_BIN_PATH"
+    fi
     return
   fi
 
-  local arch url tmp checksum_url
+  local arch url tmp checksum_url release_tag archive_version archive_name
   arch="$(detect_arch)"
   tmp="$(mktemp -d)"
-  url="https://github.com/omo/omo/releases/download/${VERSION}/omo_${VERSION}_linux_${arch}.tar.gz"
-  checksum_url="https://github.com/omo/omo/releases/download/${VERSION}/checksums.txt"
+  release_tag="$(resolve_omo_release_tag "$VERSION")"
+  archive_version="${release_tag#v}"
+  archive_name="omo_${archive_version}_linux_${arch}.tar.gz"
+  url="https://github.com/${RELEASE_OWNER}/${RELEASE_REPO}/releases/download/${release_tag}/${archive_name}"
+  checksum_url="https://github.com/${RELEASE_OWNER}/${RELEASE_REPO}/releases/download/${release_tag}/checksums.txt"
   log "download: $url"
-  run curl -fsSL "$url" -o "$tmp/omo.tar.gz"
+  run curl -fsSL "$url" -o "$tmp/$archive_name"
   run curl -fsSL "$checksum_url" -o "$tmp/checksums.txt"
   if [[ "$DRY_RUN" != "true" ]]; then
-    (cd "$tmp" && grep "omo_${VERSION}_linux_${arch}.tar.gz" checksums.txt | sha256sum -c -)
-    tar -xzf "$tmp/omo.tar.gz" -C "$tmp"
+    (cd "$tmp" && grep " ${archive_name}\$" checksums.txt | sha256sum -c -)
+    tar -xzf "$tmp/$archive_name" -C "$tmp"
     install -m 0755 "$tmp/omo" "$BIN_PATH"
+    if [[ -f "$tmp/omoctl" ]]; then
+      install -m 0755 "$tmp/omoctl" "$OMOCTL_BIN_PATH"
+    fi
   fi
   rm -rf "$tmp"
+}
+
+resolve_omo_release_tag() {
+  local requested="$1" tag
+  if [[ "$requested" != "latest" ]]; then
+    printf '%s' "$requested"
+    return
+  fi
+  if [[ "$DRY_RUN" == "true" ]]; then
+    printf 'latest'
+    return
+  fi
+  tag="$(curl -fsSL --max-time 8 "https://api.github.com/repos/${RELEASE_OWNER}/${RELEASE_REPO}/releases/latest" 2>/dev/null | sed -n 's/.*"tag_name"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p' | head -n1 || true)"
+  [[ -n "$tag" ]] || fail "could not resolve latest OMO release tag"
+  printf '%s' "$tag"
 }
 
 prepare_paths() {

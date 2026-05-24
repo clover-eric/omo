@@ -20,7 +20,35 @@ curl http://127.0.0.1:8080/api/system/health
 
 ## Deployment
 
-Production deployment is added in later phases through `scripts/install.sh`, systemd units, Caddy management, and signed release artifacts.
+Install the latest stable release from GitHub Releases:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/clover-eric/omo/main/scripts/install.sh | sudo bash -s -- --channel stable
+```
+
+Preview installation actions:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/clover-eric/omo/main/scripts/install.sh | bash -s -- --dry-run
+```
+
+Upgrade with binary backup and health validation:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/clover-eric/omo/main/scripts/upgrade.sh | sudo bash -s -- --channel stable
+```
+
+Safely uninstall while preserving data and backups:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/clover-eric/omo/main/scripts/uninstall.sh | sudo bash -s -- --keep-data
+```
+
+Remove all local OMO data only with explicit purge confirmation:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/clover-eric/omo/main/scripts/uninstall.sh | sudo bash -s -- --purge --confirm-purge
+```
 
 ## New Server Initialization
 
