@@ -136,15 +136,26 @@ func (s *Service) EnsureInitToken(ctx context.Context) (*InitToken, error) {
 		return nil, nil
 	}
 
+	envToken := strings.TrimSpace(getenv("OMO_INIT_TOKEN"))
 	existingHash, ok, err := s.store.GetSetting(ctx, settingInitTokenHash)
 	if err != nil {
 		return nil, err
 	}
 	if ok && existingHash != "" {
+		if envToken != "" && auth.HashToken(envToken) != existingHash {
+			expiresAt := time.Now().UTC().Add(2 * time.Hour)
+			if err := s.store.SetSetting(ctx, settingInitTokenHash, auth.HashToken(envToken)); err != nil {
+				return nil, err
+			}
+			if err := s.store.SetSetting(ctx, settingInitTokenExpiresAt, expiresAt.Format(time.RFC3339Nano)); err != nil {
+				return nil, err
+			}
+			return &InitToken{Token: envToken, ExpiresAt: expiresAt, Generated: true}, nil
+		}
 		return nil, nil
 	}
 
-	token := strings.TrimSpace(getenv("OMO_INIT_TOKEN"))
+	token := envToken
 	if token == "" {
 		var err error
 		token, err = auth.GenerateToken(32)

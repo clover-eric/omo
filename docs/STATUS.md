@@ -492,6 +492,11 @@ Select-String -Path internal\**\*.go,cmd\**\*.go,web\src\**\*.ts,web\src\**\*.sv
 - 2026-05-25: Cross-compiled bootstrap `omo` and `omoctl` binaries for Linux amd64 and arm64 with the project-local Go toolchain, packaged them with lifecycle scripts, and verified archive contents plus checksum metadata.
 - 2026-05-25: Fixed generated `omo-init-watch.service` so the health retry loop does not use command substitution while rendering the systemd unit.
 - 2026-05-25: `sh -n scripts/install.sh` and `git diff --check` passed after the initialization watcher unit rendering fix.
+- 2026-05-25: Updated initialization UX so the first-run page defaults to Simplified Chinese, exposes Chinese/English and light/dark preference controls, and lowers the administrator password requirement to at least 8 characters with letters and numbers.
+- 2026-05-25: Fixed initialization token refresh for repeated installer runs by allowing `OMO_INIT_TOKEN` from the current systemd environment file to replace a stale uninitialized token hash in SQLite.
+- 2026-05-25: Refreshed embedded frontend assets and Linux bootstrap archives so new-server installs receive the Simplified Chinese initialization page and refreshed token handling.
+- 2026-05-25: `go test ./...`, `pnpm --dir web test`, and `pnpm --dir web build` passed after the initialization UX/password/token fixes.
+- 2026-05-25: Extended `.gitattributes` to keep Go, Svelte, TypeScript, and CSS source files on LF line endings from Windows workspaces.
 - `bash -n scripts/install.sh`: passed.
 - `scripts/install.sh --dry-run`: passed with sqlite/Caddy preparation, time-sync check, root-only initialization env/link files, temporary init service, init watcher, firewall guidance, and direct one-time initialization link output.
 - `/mnt/c/Program Files/Go/bin/go.exe test ./...`: passed.

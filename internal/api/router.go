@@ -1,4 +1,4 @@
-﻿package api
+package api
 
 import (
 	"context"
@@ -34,20 +34,20 @@ import (
 const csrfCookieName = "omo_csrf"
 
 type Config struct {
-	StaticFS  fs.FS
-	Bootstrap *bootstrap.Service
-	Auth      *auth.Service
-	Store     stateStore
-	SingBox   *singbox.Detector
-	Profiles  *protocol.Registry
-	ConfigGen *configgen.Service
+	StaticFS      fs.FS
+	Bootstrap     *bootstrap.Service
+	Auth          *auth.Service
+	Store         stateStore
+	SingBox       *singbox.Detector
+	Profiles      *protocol.Registry
+	ConfigGen     *configgen.Service
 	Subscriptions *subscription.Service
-	Diagnostics *diagnostics.Service
-	Pairing *pairing.Service
-	Backup *backup.Service
-	Audit *audit.Service
-	Update *update.Service
-	Version string
+	Diagnostics   *diagnostics.Service
+	Pairing       *pairing.Service
+	Backup        *backup.Service
+	Audit         *audit.Service
+	Update        *update.Service
+	Version       string
 }
 
 type settingsStore interface {
@@ -398,7 +398,7 @@ func NewRouter(cfg Config) http.Handler {
 		}
 		var req struct {
 			DiagnosticsExternalProvider *settings.DiagnosticsExternalProviderUpdate `json:"diagnosticsExternalProvider"`
-			UpdateManifestURL *string `json:"updateManifestUrl"`
+			UpdateManifestURL           *string                                     `json:"updateManifestUrl"`
 		}
 		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 			respondError(w, r, http.StatusBadRequest, "INVALID_JSON", "Request body is not valid JSON.", nil)
@@ -1054,7 +1054,7 @@ func writeBootstrapError(w http.ResponseWriter, r *http.Request, err error) {
 	case errors.Is(err, bootstrap.ErrPasswordMismatch):
 		respondError(w, r, http.StatusBadRequest, "PASSWORD_CONFIRM_MISMATCH", "The administrator passwords do not match.", nil)
 	case errors.Is(err, auth.ErrWeakPassword):
-		respondError(w, r, http.StatusBadRequest, "WEAK_ADMIN_PASSWORD", "Administrator password is too weak. Use at least 12 characters with mixed case letters, numbers, and symbols.", nil)
+		respondError(w, r, http.StatusBadRequest, "WEAK_ADMIN_PASSWORD", "Administrator password must be at least 8 characters and include letters and numbers.", nil)
 	case errors.Is(err, bootstrap.ErrInvalidInput):
 		respondError(w, r, http.StatusBadRequest, "INVALID_BOOTSTRAP_INPUT", "Initialization information is incomplete or invalid.", nil)
 	case errors.Is(err, bootstrap.ErrJobRunning):

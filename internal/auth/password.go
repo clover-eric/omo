@@ -22,7 +22,7 @@ const (
 var ErrWeakPassword = errors.New("password does not meet strength requirements")
 
 func ValidatePassword(username string, password string) error {
-	if len([]rune(password)) < 12 {
+	if len([]rune(password)) < 8 {
 		return ErrWeakPassword
 	}
 
@@ -32,21 +32,17 @@ func ValidatePassword(username string, password string) error {
 		return ErrWeakPassword
 	}
 
-	var hasLower, hasUpper, hasDigit, hasSymbol bool
+	var hasLetter, hasDigit bool
 	for _, r := range password {
 		switch {
-		case unicode.IsLower(r):
-			hasLower = true
-		case unicode.IsUpper(r):
-			hasUpper = true
+		case unicode.IsLetter(r):
+			hasLetter = true
 		case unicode.IsDigit(r):
 			hasDigit = true
-		case unicode.IsPunct(r) || unicode.IsSymbol(r):
-			hasSymbol = true
 		}
 	}
 
-	if !hasLower || !hasUpper || !hasDigit || !hasSymbol {
+	if !hasLetter || !hasDigit {
 		return ErrWeakPassword
 	}
 

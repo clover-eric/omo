@@ -17,10 +17,16 @@ func TestHashAndVerifyPassword(t *testing.T) {
 }
 
 func TestValidatePassword(t *testing.T) {
-	if err := ValidatePassword("admin", "StrongPassw0rd!"); err != nil {
-		t.Fatalf("expected strong password: %v", err)
+	if err := ValidatePassword("admin", "omo2026a"); err != nil {
+		t.Fatalf("expected 8-character password with letters and digits: %v", err)
 	}
-	if err := ValidatePassword("admin", "admin123"); err == nil {
-		t.Fatal("expected weak password to fail")
+	if err := ValidatePassword("admin", "12345678"); err == nil {
+		t.Fatal("expected digits-only password to fail")
+	}
+	if err := ValidatePassword("admin", "admin1234"); err == nil {
+		t.Fatal("expected password containing username to fail")
+	}
+	if err := ValidatePassword("admin", "abc1234"); err == nil {
+		t.Fatal("expected short password to fail")
 	}
 }

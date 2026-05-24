@@ -119,6 +119,41 @@ func TestBootstrapWritesReadyMarker(t *testing.T) {
 	}
 }
 
+func TestEnsureInitTokenRefreshesFromInstallerEnvironment(t *testing.T) {
+	ctx := context.Background()
+	appStore, err := store.Open(ctx, filepath.Join(t.TempDir(), "omo.db"))
+	if err != nil {
+		t.Fatalf("open store: %v", err)
+	}
+	defer appStore.Close()
+
+	t.Setenv("OMO_INIT_TOKEN", "first-token")
+	service := NewService(appStore)
+	first, err := service.EnsureInitToken(ctx)
+	if err != nil {
+		t.Fatalf("ensure first token: %v", err)
+	}
+	if first == nil || first.Token != "first-token" {
+		t.Fatalf("expected first env token, got %#v", first)
+	}
+
+	t.Setenv("OMO_INIT_TOKEN", "second-token")
+	second, err := service.EnsureInitToken(ctx)
+	if err != nil {
+		t.Fatalf("ensure refreshed token: %v", err)
+	}
+	if second == nil || second.Token != "second-token" {
+		t.Fatalf("expected refreshed env token, got %#v", second)
+	}
+
+	if err := service.validateToken(ctx, "second-token"); err != nil {
+		t.Fatalf("expected refreshed token to validate: %v", err)
+	}
+	if err := service.validateToken(ctx, "first-token"); !errors.Is(err, ErrInvalidToken) {
+		t.Fatalf("expected old token to be invalid, got %v", err)
+	}
+}
+
 func TestBootstrapFallbackKeepsRetryableState(t *testing.T) {
 	ctx := context.Background()
 	appStore, err := store.Open(ctx, filepath.Join(t.TempDir(), "omo.db"))
