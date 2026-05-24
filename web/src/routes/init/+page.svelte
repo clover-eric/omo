@@ -37,6 +37,7 @@
       confirmPassword: '确认密码',
       domain: '解析到本服务器的域名',
       start: '开始配置部署',
+      retryStart: '确认重试并继续部署',
       complete: '入口配置完成',
       retry: '重试初始化',
       liveSteps: '实时步骤',
@@ -58,6 +59,7 @@
       confirmPassword: 'Confirm password',
       domain: 'Domain resolving to this server',
       start: 'Start automated configuration',
+      retryStart: 'Confirm retry and continue',
       complete: 'Entry configuration complete',
       retry: 'Retry initialization',
       liveSteps: 'Live steps',
@@ -79,11 +81,15 @@
   ] as BootstrapState[];
 
   onMount(() => {
-    language = ((localStorage.getItem('omo-language') as Lang | null) ?? 'zh-CN');
+    language = readLanguage();
     window.addEventListener('omo-language-change', handleLanguageChange);
     void initialize();
     return () => window.removeEventListener('omo-language-change', handleLanguageChange);
   });
+
+  function readLanguage(): Lang {
+    return localStorage.getItem('omo-language') === 'en-US' ? 'en-US' : 'zh-CN';
+  }
 
   async function initialize() {
     token = new URLSearchParams(window.location.search).get('token') ?? '';
@@ -109,7 +115,7 @@
     }
   }
 
-  async function startBootstrap(retry = false) {
+  async function startBootstrap(retry = latestJob?.status === 'failed') {
     errorMessage = '';
     submitting = true;
     try {
@@ -129,7 +135,12 @@
         }, 3000);
       }
     } catch (error) {
-      errorMessage = messageFrom(error);
+      const message = messageFrom(error);
+      if (!retry && message.includes('previous initialization attempt failed')) {
+        await startBootstrap(true);
+        return;
+      }
+      errorMessage = message;
     } finally {
       submitting = false;
     }
@@ -160,9 +171,31 @@
     return error instanceof Error ? error.message : copy[language].requestError;
   }
 
+  function eventMessage(message: string) {
+    if (language === 'zh-CN') {
+      return message;
+    }
+    const translated: Record<string, string> = {
+      '初始化任务已创建。': 'Initialization job created.',
+      '正在执行初始化预检查。': 'Running initialization preflight checks.',
+      '初始化预检查通过。': 'Initialization preflight checks passed.',
+      '正在创建管理员账户。': 'Creating administrator account.',
+      '管理员账户已创建。': 'Administrator account created.',
+      '检测到可重试的初始化状态。': 'Retryable initialization state detected.',
+      '管理员账户已存在，继续入口配置。': 'Administrator account exists; continuing entry configuration.',
+      '正在校验域名解析和入口端口。': 'Verifying domain resolution and entry ports.',
+      '域名解析和端口检查通过。': 'Domain resolution and port checks passed.',
+      '证书状态已记录。': 'Certificate status recorded.',
+      '控制台 HTTPS 入口配置已应用。': 'Console HTTPS entry configuration applied.',
+      '初始化入口配置完成，正在切换到正式控制台服务。': 'Initialization entry configuration complete; switching to the regular console service.'
+    };
+    return translated[message] ?? message;
+  }
+
   const text = $derived(copy[language]);
   const currentProgress = $derived(latestJob?.progress ?? 0);
   const complete = $derived(status?.phase1Complete || latestJob?.status === 'succeeded');
+  const retrying = $derived(latestJob?.status === 'failed');
 </script>
 
 <svelte:head>
@@ -186,7 +219,7 @@
   </section>
 
   <section class="init-grid">
-    <form class="init-form" onsubmit={(event) => { event.preventDefault(); startBootstrap(false); }}>
+    <form class="init-form" onsubmit={(event) => { event.preventDefault(); startBootstrap(); }}>
       <div class="form-title">
         <KeyRound size={20} />
         <h2>{text.formTitle}</h2>
@@ -235,22 +268,15 @@
           {:else}
             <Activity size={18} />
           {/if}
-          <span>{complete ? text.complete : text.start}</span>
+          <span>{complete ? text.complete : retrying ? text.retryStart : text.start}</span>
         </button>
-
-        {#if latestJob?.status === 'failed'}
-          <button class="secondary-button" type="button" disabled={submitting} onclick={() => startBootstrap(true)}>
-            <Activity size={18} />
-            <span>{text.retry}</span>
-          </button>
-        {/if}
       {/if}
     </form>
 
     <aside class="init-status">
       <div class="status-header">
         <p>{text.liveSteps}</p>
-        <strong>{formatBootstrapState((latestJob?.state ?? status?.state ?? 'UNINITIALIZED') as BootstrapState)}</strong>
+        <strong>{formatBootstrapState((latestJob?.state ?? status?.state ?? 'UNINITIALIZED') as BootstrapState, language)}</strong>
       </div>
 
       <div class="bar">
@@ -261,7 +287,7 @@
         {#each steps as step}
           <div class:done={currentProgress >= ((steps.indexOf(step) + 1) / steps.length) * 100}>
             <span></span>
-            <p>{formatBootstrapState(step)}</p>
+            <p>{formatBootstrapState(step, language)}</p>
           </div>
         {/each}
       </div>
@@ -273,7 +299,7 @@
           {#each events as event}
             <article>
               <span>{event.progress}%</span>
-              <p>{event.message}</p>
+              <p>{eventMessage(event.message)}</p>
             </article>
           {/each}
         {/if}

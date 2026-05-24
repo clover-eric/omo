@@ -6,6 +6,7 @@
   import { apiPost } from '$lib/api';
 
   type Lang = 'zh-CN' | 'en-US';
+
   let language = $state<Lang>('zh-CN');
   let username = $state('admin');
   let password = $state('');
@@ -32,7 +33,7 @@
   } as const;
 
   onMount(() => {
-    language = ((localStorage.getItem('omo-language') as Lang | null) ?? 'zh-CN');
+    language = localStorage.getItem('omo-language') === 'en-US' ? 'en-US' : 'zh-CN';
     window.addEventListener('omo-language-change', handleLanguageChange);
     return () => window.removeEventListener('omo-language-change', handleLanguageChange);
   });

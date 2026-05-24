@@ -1634,3 +1634,129 @@ h2 {
     border-color: #2c4650;
   }
 }
+
+:root[data-theme='light'] .sidebar,
+:root[data-theme='light'] .metric-card,
+:root[data-theme='light'] .panel,
+:root[data-theme='light'] .service-card,
+:root[data-theme='light'] .instance-row,
+:root[data-theme='light'] .subscription-row,
+:root[data-theme='light'] .check-result-list article,
+:root[data-theme='light'] .audit-row,
+:root[data-theme='light'] .init-form,
+:root[data-theme='light'] .init-status,
+:root[data-theme='light'] .login-form {
+  background: rgba(255, 255, 255, 0.92);
+  border-color: #d8dde6;
+  color: #1b1f27;
+}
+
+:root[data-theme='light'] .brand span,
+:root[data-theme='light'] .eyebrow,
+:root[data-theme='light'] .metric-card p,
+:root[data-theme='light'] .metric-card span,
+:root[data-theme='light'] .service-title p,
+:root[data-theme='light'] .service-facts dt,
+:root[data-theme='light'] .subscription-row p,
+:root[data-theme='light'] .empty-text,
+:root[data-theme='light'] .audit-row p,
+:root[data-theme='light'] .audit-row span,
+:root[data-theme='light'] .init-heading p,
+:root[data-theme='light'] .init-form label span,
+:root[data-theme='light'] .status-header p,
+:root[data-theme='light'] .step-list p,
+:root[data-theme='light'] .loading-row,
+:root[data-theme='light'] .login-form > p,
+:root[data-theme='light'] .login-form label span {
+  color: #607085;
+}
+
+:root[data-theme='light'] input,
+:root[data-theme='light'] textarea,
+:root[data-theme='light'] .init-form input,
+:root[data-theme='light'] .login-form input,
+:root[data-theme='light'] .distribution-form input,
+:root[data-theme='light'] .provider-form input,
+:root[data-theme='light'] .compact-field input,
+:root[data-theme='light'] .cascade-form input,
+:root[data-theme='light'] .cascade-form textarea {
+  background: #ffffff;
+  border-color: #cfd7e3;
+  color: #1b1f27;
+}
+
+:root[data-theme='light'] .bar,
+:root[data-theme='light'] .progress-ring,
+:root[data-theme='light'] .step-list div,
+:root[data-theme='light'] .metric-icon,
+:root[data-theme='light'] .service-icon,
+:root[data-theme='light'] .icon-button,
+:root[data-theme='light'] .secondary-action,
+:root[data-theme='light'] .init-form .secondary-button {
+  background: #eef3f5;
+  border-color: #cfd7e3;
+  color: #0b5d70;
+}
+
+:root[data-theme='dark'] .sidebar,
+:root[data-theme='dark'] .metric-card,
+:root[data-theme='dark'] .panel,
+:root[data-theme='dark'] .service-card,
+:root[data-theme='dark'] .instance-row,
+:root[data-theme='dark'] .subscription-row,
+:root[data-theme='dark'] .check-result-list article,
+:root[data-theme='dark'] .audit-row,
+:root[data-theme='dark'] .init-form,
+:root[data-theme='dark'] .init-status,
+:root[data-theme='dark'] .login-form {
+  background: rgba(22, 28, 36, 0.94);
+  border-color: #2b3542;
+  color: #eef3f6;
+}
+
+:root[data-theme='dark'] .brand span,
+:root[data-theme='dark'] .eyebrow,
+:root[data-theme='dark'] .metric-card p,
+:root[data-theme='dark'] .metric-card span,
+:root[data-theme='dark'] .service-title p,
+:root[data-theme='dark'] .service-facts dt,
+:root[data-theme='dark'] .subscription-row p,
+:root[data-theme='dark'] .empty-text,
+:root[data-theme='dark'] .audit-row p,
+:root[data-theme='dark'] .audit-row span,
+:root[data-theme='dark'] .init-heading p,
+:root[data-theme='dark'] .init-form label span,
+:root[data-theme='dark'] .status-header p,
+:root[data-theme='dark'] .step-list p,
+:root[data-theme='dark'] .loading-row,
+:root[data-theme='dark'] .login-form > p,
+:root[data-theme='dark'] .login-form label span {
+  color: #9aa7b7;
+}
+
+:root[data-theme='dark'] input,
+:root[data-theme='dark'] textarea,
+:root[data-theme='dark'] .init-form input,
+:root[data-theme='dark'] .login-form input,
+:root[data-theme='dark'] .distribution-form input,
+:root[data-theme='dark'] .provider-form input,
+:root[data-theme='dark'] .compact-field input,
+:root[data-theme='dark'] .cascade-form input,
+:root[data-theme='dark'] .cascade-form textarea {
+  background: #101419;
+  border-color: #344353;
+  color: #eef3f6;
+}
+
+:root[data-theme='dark'] .bar,
+:root[data-theme='dark'] .progress-ring,
+:root[data-theme='dark'] .step-list div,
+:root[data-theme='dark'] .metric-icon,
+:root[data-theme='dark'] .service-icon,
+:root[data-theme='dark'] .icon-button,
+:root[data-theme='dark'] .secondary-action,
+:root[data-theme='dark'] .init-form .secondary-button {
+  background: #1b3038;
+  border-color: #2c4650;
+  color: #68d3e3;
+}
