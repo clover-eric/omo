@@ -482,6 +482,8 @@ Select-String -Path internal\**\*.go,cmd\**\*.go,web\src\**\*.ts,web\src\**\*.sv
 - 2026-05-25: `go build -o dist\omo.exe ./cmd/omo` and `go build -o dist\omoctl.exe ./cmd/omoctl` passed with the project-local Go toolchain after the README/lifecycle script update.
 - 2026-05-25: `sh -n scripts/install.sh scripts/upgrade.sh scripts/uninstall.sh` passed through project-local MinGit `sh.exe`.
 - 2026-05-25: Static product-boundary wording and damaged-text scans returned no source matches after the README/lifecycle script update.
+- 2026-05-25: Fixed `scripts/install.sh` Caddy apt keyring placement for Ubuntu/Debian so the Cloudsmith repository source can verify `caddy-stable-archive-keyring.gpg` from `/usr/share/keyrings`.
+- 2026-05-25: `sh -n scripts/install.sh` passed after the Caddy keyring installer fix.
 - `bash -n scripts/install.sh`: passed.
 - `scripts/install.sh --dry-run`: passed with sqlite/Caddy preparation, time-sync check, root-only initialization env/link files, temporary init service, init watcher, firewall guidance, and direct one-time initialization link output.
 - `/mnt/c/Program Files/Go/bin/go.exe test ./...`: passed.

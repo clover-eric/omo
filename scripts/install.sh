@@ -351,11 +351,13 @@ install_caddy() {
   log "caddy: not found; preparing installation"
   case "${ID:-}" in
     ubuntu|debian)
+      local keyring
+      keyring="/usr/share/keyrings/caddy-stable-archive-keyring.gpg"
       check_command apt-get
       run apt-get update
       run apt-get install -y debian-keyring debian-archive-keyring apt-transport-https gnupg
-      run install -d -m 0755 /etc/apt/keyrings
-      run sh -c "curl -fsSL https://dl.cloudsmith.io/public/caddy/stable/gpg.key | gpg --dearmor -o /etc/apt/keyrings/caddy-stable-archive-keyring.gpg"
+      run install -d -m 0755 /usr/share/keyrings
+      run sh -c "curl -fsSL https://dl.cloudsmith.io/public/caddy/stable/gpg.key | gpg --dearmor > '${keyring}.tmp' && install -m 0644 '${keyring}.tmp' '${keyring}' && rm -f '${keyring}.tmp'"
       run sh -c "curl -fsSL https://dl.cloudsmith.io/public/caddy/stable/debian.deb.txt > /etc/apt/sources.list.d/caddy-stable.list"
       run apt-get update
       run apt-get install -y caddy
