@@ -1063,6 +1063,8 @@ func writeBootstrapError(w http.ResponseWriter, r *http.Request, err error) {
 		respondError(w, r, http.StatusConflict, "BOOTSTRAP_RETRY_REQUIRED", "The previous initialization attempt failed. Confirm retry before starting again.", nil)
 	case strings.Contains(err.Error(), "CADDY_UNAVAILABLE"):
 		respondError(w, r, http.StatusServiceUnavailable, "CADDY_UNAVAILABLE", "Caddy is unavailable. The temporary initialization entry remains active; repair Caddy and retry HTTPS entry configuration.", nil)
+	case strings.Contains(err.Error(), "TLS_CERTIFICATE_NOT_READY"):
+		respondError(w, r, http.StatusServiceUnavailable, "TLS_CERTIFICATE_NOT_READY", "The HTTPS entry was configured, but the TLS certificate is not ready yet. Keep the temporary initialization entry open, confirm TCP 80/443 are reachable, and retry.", nil)
 	case strings.Contains(err.Error(), "DOMAIN_NOT_RESOLVED") ||
 		strings.Contains(err.Error(), "DOMAIN_LOOKUP_FAILED") ||
 		strings.Contains(err.Error(), "no such host"):

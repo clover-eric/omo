@@ -44,6 +44,8 @@
 - [x] Add expected server IP support for domain verification.
 - [x] Enforce HTTPS-domain-only dashboard access after initialization.
 - [x] Add explicit degraded temporary-entry state when Caddy is unavailable.
+- [x] Require a successful TLS certificate handshake before completing HTTPS bootstrap handoff.
+- [x] Allow installer recovery tokens to repair HTTPS entry setup after an administrator already exists.
 - [x] Add read-only target-server validation script for the ACME acceptance check.
 - [ ] Validate full ACME issuance on a real target server with public domain and reachable 80/443.
 

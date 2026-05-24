@@ -154,6 +154,73 @@ func TestEnsureInitTokenRefreshesFromInstallerEnvironment(t *testing.T) {
 	}
 }
 
+func TestEnsureInitTokenAllowsInstallerRecoveryAfterAdminExists(t *testing.T) {
+	ctx := context.Background()
+	appStore, err := store.Open(ctx, filepath.Join(t.TempDir(), "omo.db"))
+	if err != nil {
+		t.Fatalf("open store: %v", err)
+	}
+	defer appStore.Close()
+
+	passwordHash := "hash"
+	if _, err := appStore.CreateAdmin(ctx, "admin", passwordHash); err != nil {
+		t.Fatalf("create admin: %v", err)
+	}
+
+	t.Setenv("OMO_INIT_TOKEN", "recovery-token")
+	service := NewService(appStore)
+	token, err := service.EnsureInitToken(ctx)
+	if err != nil {
+		t.Fatalf("ensure recovery token: %v", err)
+	}
+	if token == nil || token.Token != "recovery-token" {
+		t.Fatalf("expected recovery env token, got %#v", token)
+	}
+	if err := service.validateToken(ctx, "recovery-token"); err != nil {
+		t.Fatalf("expected recovery token to validate: %v", err)
+	}
+}
+
+func TestRecoveryTokenCanRestartHTTPSConfigurationAfterAdminExists(t *testing.T) {
+	ctx := context.Background()
+	appStore, err := store.Open(ctx, filepath.Join(t.TempDir(), "omo.db"))
+	if err != nil {
+		t.Fatalf("open store: %v", err)
+	}
+	defer appStore.Close()
+
+	service := NewService(appStore)
+	token, err := service.EnsureInitToken(ctx)
+	if err != nil {
+		t.Fatalf("ensure token: %v", err)
+	}
+	password := "StrongPassw0rd!"
+	if _, err := service.Start(ctx, StartRequest{
+		Token:           token.Token,
+		Username:        "admin",
+		Password:        password,
+		ConfirmPassword: password,
+		Domain:          "ops.example.com",
+	}); err != nil {
+		t.Fatalf("initial bootstrap: %v", err)
+	}
+
+	t.Setenv("OMO_INIT_TOKEN", "recovery-token")
+	recovery, err := service.EnsureInitToken(ctx)
+	if err != nil {
+		t.Fatalf("ensure recovery token: %v", err)
+	}
+	if _, err := service.Start(ctx, StartRequest{
+		Token:           recovery.Token,
+		Username:        "admin",
+		Password:        password,
+		ConfirmPassword: password,
+		Domain:          "ops.example.com",
+	}); err != nil {
+		t.Fatalf("expected recovery bootstrap to continue without retry flag: %v", err)
+	}
+}
+
 func TestBootstrapFallbackKeepsRetryableState(t *testing.T) {
 	ctx := context.Background()
 	appStore, err := store.Open(ctx, filepath.Join(t.TempDir(), "omo.db"))

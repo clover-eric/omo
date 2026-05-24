@@ -44,6 +44,8 @@ Phase 7: backup/restore, audit listing, online update, release automation, and s
 - Installer checks system time synchronization, verifies the temporary initialization service local health endpoint, and prints firewall/security-group guidance for the temporary port plus 80/443.
 - Installer prepares Caddy with an OMO-managed import directory so the default public entry is empty until domain verification applies the HTTPS panel entry.
 - Bootstrap success now returns `https://{domain}/dashboard` and the `/init` page redirects there after the final entry configuration step.
+- Bootstrap Phase 2 now waits for a real TLS certificate handshake before marking HTTPS ready, writing the handoff marker, or redirecting to the dashboard.
+- Installer recovery tokens can be refreshed even after an administrator exists, allowing a failed or premature HTTPS handoff to be recovered through a new temporary initialization link.
 - Caddy unavailable handling now records an explicit degraded `temporary_http` Phase 2 result, returns `CADDY_UNAVAILABLE`, keeps the initialization token valid, and leaves the temporary entry retryable instead of marking HTTPS ready.
 - Browser CSRF protection is implemented for non-safe `/api/*` methods with a readable `omo_csrf` cookie, `X-CSRF-Token` validation, and `GET /api/security/csrf` preparation for first POST flows.
 - Login failure counters and temporary administrator lockouts are persisted in SQLite via `login_rate_limits`, so active lockouts survive service restarts and successful login clears the record.
@@ -509,6 +511,11 @@ Select-String -Path internal\**\*.go,cmd\**\*.go,web\src\**\*.ts,web\src\**\*.sv
 - 2026-05-25: Hardened `scripts/install.sh` for repeatable target-server testing by stopping any existing `omo.service`, `omo-init.service`, and `omo-init-watch.service` before writing fresh units, initialization token, and recovery link.
 - 2026-05-25: Refreshed Linux bootstrap archives and `deploy/bootstrap/checksums.txt` after the repeatable installer recovery fix.
 - 2026-05-25: `sh -n scripts/install.sh`, `go test ./...`, `pnpm --dir web build`, archive content checks, and `git diff --check` passed after the repeatable installer recovery fix. The frontend build still reports only the existing Svelte `<svelte:component>` deprecation warning in the diagnostics page.
+- 2026-05-25: Target-server testing reached `https://hk2.i3.pub/dashboard`, but the browser reported `ERR_SSL_PROTOCOL_ERROR`, indicating OMO had redirected before a valid TLS handshake was available.
+- 2026-05-25: Hardened bootstrap Phase 2 so Caddy configuration alone is not enough to complete initialization; OMO now waits for a successful TLS certificate handshake, records `TLS_CERTIFICATE_NOT_READY` as a retryable temporary-entry state when needed, and preserves the temporary initialization path.
+- 2026-05-25: Added installer recovery support for already-created administrators by refreshing the environment-provided initialization token on reinstall and allowing HTTPS entry recovery without a stale retry flag.
+- 2026-05-25: Refreshed embedded frontend assets plus Linux bootstrap archives/checksums after the TLS readiness and recovery-token fixes.
+- 2026-05-25: `go test ./...` and `pnpm --dir web build` passed after the TLS readiness and recovery-token fixes. The frontend build still reports only the existing Svelte `<svelte:component>` deprecation warning in the diagnostics page.
 - `bash -n scripts/install.sh`: passed.
 - `scripts/install.sh --dry-run`: passed with sqlite/Caddy preparation, time-sync check, root-only initialization env/link files, temporary init service, init watcher, firewall guidance, and direct one-time initialization link output.
 - `/mnt/c/Program Files/Go/bin/go.exe test ./...`: passed.

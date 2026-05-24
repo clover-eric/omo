@@ -14,10 +14,11 @@ import (
 )
 
 type Manager struct {
-	ConfigPath string
-	Runner     Runner
-	Resolver   Resolver
-	Dialer     Dialer
+	ConfigPath          string
+	Runner              Runner
+	Resolver            Resolver
+	Dialer              Dialer
+	CertificateStatusFn func(ctx context.Context, domain string) CertificateStatus
 }
 
 type Runner interface {
@@ -207,6 +208,9 @@ func (m *Manager) ApplyConfig(ctx context.Context, rendered string) error {
 }
 
 func (m *Manager) CertificateStatus(ctx context.Context, domain string) CertificateStatus {
+	if m.CertificateStatusFn != nil {
+		return m.CertificateStatusFn(ctx, domain)
+	}
 	dialer := tls.Dialer{NetDialer: &net.Dialer{Timeout: 3 * time.Second}, Config: &tls.Config{ServerName: domain, MinVersion: tls.VersionTLS12}}
 	conn, err := dialer.DialContext(ctx, "tcp", net.JoinHostPort(domain, "443"))
 	if err != nil {

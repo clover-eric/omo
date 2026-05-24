@@ -4,7 +4,10 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"os"
 	"os/exec"
+	"strings"
+	"time"
 
 	"omo/internal/caddy"
 )
@@ -14,6 +17,8 @@ type CaddyPhase2Hook struct {
 	ExpectedIPs []string
 	IPProbe     caddy.PublicIPProbe
 	Upstream    string
+	TLSWait     time.Duration
+	TLSPoll     time.Duration
 }
 
 func (h CaddyPhase2Hook) Run(ctx context.Context, domain string) (Phase2Result, error) {
@@ -49,6 +54,13 @@ func (h CaddyPhase2Hook) Run(ctx context.Context, domain string) (Phase2Result, 
 	}
 	portChecks, err := h.Manager.CheckPorts(ctx, 80, 443)
 	if err != nil {
+		if h.configContainsDomain(domain) {
+			cert := h.waitForCertificate(ctx, domain)
+			if cert.Available {
+				return h.readyResult(domainCheck.ResolvedIPs, []int{80, 443}, cert, "HTTPS entry is already active."), nil
+			}
+			return Phase2Result{}, h.tlsNotReadyError(domainCheck.ResolvedIPs, nil, cert, err)
+		}
 		return Phase2Result{}, err
 	}
 	available := make([]int, 0, len(portChecks))
@@ -80,17 +92,99 @@ func (h CaddyPhase2Hook) Run(ctx context.Context, domain string) (Phase2Result, 
 	}
 
 	cert := h.Manager.CertificateStatus(ctx, domain)
-	result := Phase2Result{
-		ResolvedIPs:       domainCheck.ResolvedIPs,
-		PortsAvailable:    available,
-		CertificateIssuer: cert.Issuer,
-		Message:           cert.UserMessage,
-		EntryMode:         "https_domain",
-		SecurityState:     "ready",
+	if !cert.Available {
+		cert = h.waitForCertificate(ctx, domain)
 	}
-	return result, nil
+	if !cert.Available {
+		return Phase2Result{}, h.tlsNotReadyError(domainCheck.ResolvedIPs, available, cert, nil)
+	}
+	return h.readyResult(domainCheck.ResolvedIPs, available, cert, cert.UserMessage), nil
 }
 
 func isCaddyUnavailable(err error) bool {
 	return errors.Is(err, exec.ErrNotFound)
+}
+
+func (h CaddyPhase2Hook) waitForCertificate(ctx context.Context, domain string) caddy.CertificateStatus {
+	wait := h.TLSWait
+	if wait == 0 {
+		wait = 2 * time.Minute
+	}
+	poll := h.TLSPoll
+	if poll == 0 {
+		poll = 3 * time.Second
+	}
+	if wait < 0 {
+		return h.Manager.CertificateStatus(ctx, domain)
+	}
+
+	deadline := time.NewTimer(wait)
+	defer deadline.Stop()
+	ticker := time.NewTicker(poll)
+	defer ticker.Stop()
+
+	last := h.Manager.CertificateStatus(ctx, domain)
+	if last.Available {
+		return last
+	}
+	for {
+		select {
+		case <-ctx.Done():
+			return last
+		case <-deadline.C:
+			return last
+		case <-ticker.C:
+			last = h.Manager.CertificateStatus(ctx, domain)
+			if last.Available {
+				return last
+			}
+		}
+	}
+}
+
+func (h CaddyPhase2Hook) tlsNotReadyError(resolved []string, ports []int, cert caddy.CertificateStatus, cause error) Phase2FallbackError {
+	message := "HTTPS entry was configured, but a valid TLS handshake is not ready yet. Keep the temporary initialization entry open, confirm TCP 80/443 are reachable from the public internet, then retry."
+	result := Phase2Result{
+		ResolvedIPs:    resolved,
+		PortsAvailable: ports,
+		Message:        message,
+		EntryMode:      "temporary_http",
+		SecurityState:  "pending_tls",
+		Warnings: []string{
+			"OMO did not switch to the HTTPS dashboard because the domain certificate is not ready.",
+			"Check Caddy logs and cloud security group rules for TCP 80 and 443.",
+			cert.UserMessage,
+		},
+	}
+	if cause == nil {
+		cause = errors.New(cert.UserMessage)
+	}
+	return Phase2FallbackError{
+		Code:    "TLS_CERTIFICATE_NOT_READY",
+		Message: message,
+		Result:  result,
+		Cause:   cause,
+	}
+}
+
+func (h CaddyPhase2Hook) readyResult(resolved []string, ports []int, cert caddy.CertificateStatus, message string) Phase2Result {
+	return Phase2Result{
+		ResolvedIPs:       resolved,
+		PortsAvailable:    ports,
+		CertificateIssuer: cert.Issuer,
+		Message:           message,
+		EntryMode:         "https_domain",
+		SecurityState:     "ready",
+	}
+}
+
+func (h CaddyPhase2Hook) configContainsDomain(domain string) bool {
+	if h.Manager == nil || strings.TrimSpace(h.Manager.ConfigPath) == "" {
+		return false
+	}
+	data, err := os.ReadFile(h.Manager.ConfigPath)
+	if err != nil {
+		return false
+	}
+	return strings.Contains(string(data), strings.TrimSpace(domain))
 }

@@ -132,11 +132,21 @@ func (s *Service) EnsureInitToken(ctx context.Context) (*InitToken, error) {
 	if err != nil {
 		return nil, err
 	}
+	envToken := strings.TrimSpace(getenv("OMO_INIT_TOKEN"))
 	if admins > 0 {
+		if envToken != "" {
+			expiresAt := time.Now().UTC().Add(2 * time.Hour)
+			if err := s.store.SetSetting(ctx, settingInitTokenHash, auth.HashToken(envToken)); err != nil {
+				return nil, err
+			}
+			if err := s.store.SetSetting(ctx, settingInitTokenExpiresAt, expiresAt.Format(time.RFC3339Nano)); err != nil {
+				return nil, err
+			}
+			return &InitToken{Token: envToken, ExpiresAt: expiresAt, Generated: true}, nil
+		}
 		return nil, nil
 	}
 
-	envToken := strings.TrimSpace(getenv("OMO_INIT_TOKEN"))
 	existingHash, ok, err := s.store.GetSetting(ctx, settingInitTokenHash)
 	if err != nil {
 		return nil, err
@@ -468,8 +478,6 @@ func (s *Service) validateStartRequest(ctx context.Context, req StartRequest, ad
 		if err := auth.ValidatePassword(username, req.Password); err != nil {
 			return err
 		}
-	} else if !req.Retry {
-		return ErrAlreadyInitialized
 	} else if req.Password == "" {
 		return ErrInvalidInput
 	}
