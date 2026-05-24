@@ -490,6 +490,8 @@ Select-String -Path internal\**\*.go,cmd\**\*.go,web\src\**\*.ts,web\src\**\*.sv
 - 2026-05-25: `sh -n scripts/install.sh` and `git diff --check` passed after the OMO version variable isolation fix.
 - 2026-05-25: Added `deploy/bootstrap/` Linux amd64/arm64 bootstrap archives and checksum metadata so `scripts/install.sh --version latest` can fall back to a main-branch test snapshot when GitHub Releases are not published yet.
 - 2026-05-25: Cross-compiled bootstrap `omo` and `omoctl` binaries for Linux amd64 and arm64 with the project-local Go toolchain, packaged them with lifecycle scripts, and verified archive contents plus checksum metadata.
+- 2026-05-25: Fixed generated `omo-init-watch.service` so the health retry loop does not use command substitution while rendering the systemd unit.
+- 2026-05-25: `sh -n scripts/install.sh` and `git diff --check` passed after the initialization watcher unit rendering fix.
 - `bash -n scripts/install.sh`: passed.
 - `scripts/install.sh --dry-run`: passed with sqlite/Caddy preparation, time-sync check, root-only initialization env/link files, temporary init service, init watcher, firewall guidance, and direct one-time initialization link output.
 - `/mnt/c/Program Files/Go/bin/go.exe test ./...`: passed.
