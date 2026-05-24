@@ -406,7 +406,10 @@ func userFacingPhase2Error(err error) string {
 	if strings.Contains(message, "port unavailable") {
 		return "80/443 端口不可用，请释放端口后重试。"
 	}
-	return "域名、端口或 HTTPS 入口配置失败，旧配置已保留，请检查服务日志后重试。"
+	if strings.Contains(message, "caddy ") || strings.Contains(message, "Caddyfile") || strings.Contains(message, "certificate") {
+		return "HTTPS 入口配置失败，旧配置已保留。Caddy 返回：" + message
+	}
+	return "域名、端口或 HTTPS 入口配置失败，旧配置已保留。错误详情：" + message
 }
 
 func (s *Service) StreamEvents(w http.ResponseWriter, r *http.Request) {

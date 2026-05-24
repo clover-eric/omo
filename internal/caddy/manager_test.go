@@ -6,6 +6,7 @@ import (
 	"net"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 )
 
@@ -96,6 +97,28 @@ func TestApplyConfigRollbackOnReloadFailure(t *testing.T) {
 	}
 	if string(data) != "old config" {
 		t.Fatalf("expected rollback to old config, got %q", string(data))
+	}
+}
+
+func TestApplyConfigUsesCaddyfileAdapter(t *testing.T) {
+	dir := t.TempDir()
+	path := filepath.Join(dir, "omo.caddy")
+	runner := &fakeRunner{}
+	manager := NewManager(path)
+	manager.Runner = runner
+
+	if err := manager.ApplyConfig(context.Background(), "ops.example.com {\n\treverse_proxy 127.0.0.1:8080\n}\n"); err != nil {
+		t.Fatalf("apply config: %v", err)
+	}
+
+	if len(runner.calls) != 2 {
+		t.Fatalf("expected validate and reload calls, got %#v", runner.calls)
+	}
+	if !strings.Contains(runner.calls[0], "validate --config") || !strings.Contains(runner.calls[0], "--adapter caddyfile") {
+		t.Fatalf("expected validate to use caddyfile adapter, got %q", runner.calls[0])
+	}
+	if !strings.Contains(runner.calls[1], "reload --config") || !strings.Contains(runner.calls[1], "--adapter caddyfile") {
+		t.Fatalf("expected reload to use caddyfile adapter, got %q", runner.calls[1])
 	}
 }
 

@@ -185,7 +185,7 @@ func (m *Manager) ApplyConfig(ctx context.Context, rendered string) error {
 		return err
 	}
 
-	if err := m.runner().Run(ctx, "caddy", "validate", "--config", tmp); err != nil {
+	if err := m.runner().Run(ctx, "caddy", "validate", "--config", tmp, "--adapter", "caddyfile"); err != nil {
 		_ = os.Remove(tmp)
 		return err
 	}
@@ -195,10 +195,10 @@ func (m *Manager) ApplyConfig(ctx context.Context, rendered string) error {
 		return err
 	}
 
-	if err := m.runner().Run(ctx, "caddy", "reload", "--config", configPath); err != nil {
+	if err := m.runner().Run(ctx, "caddy", "reload", "--config", configPath, "--adapter", "caddyfile"); err != nil {
 		if hadPrevious {
 			_ = os.WriteFile(configPath, previous, 0o644)
-			_ = m.runner().Run(ctx, "caddy", "reload", "--config", configPath)
+			_ = m.runner().Run(ctx, "caddy", "reload", "--config", configPath, "--adapter", "caddyfile")
 		}
 		return err
 	}

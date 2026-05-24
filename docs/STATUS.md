@@ -500,6 +500,10 @@ Select-String -Path internal\**\*.go,cmd\**\*.go,web\src\**\*.ts,web\src\**\*.sv
 - 2026-05-25: Completed the initialization-page language/theme controls by rewriting corrupted UTF-8 strings, translating bootstrap state labels for Chinese/English, adding explicit light/dark CSS overrides that beat system color-scheme media rules, and making the main initialization button submit retry confirmation automatically after a failed attempt.
 - 2026-05-25: Refreshed embedded frontend assets and Linux bootstrap archives after the complete language/theme/retry UX fix.
 - 2026-05-25: `pnpm --dir web test`, `pnpm --dir web build`, `go test ./...`, and `go vet ./...` passed after the complete language/theme/retry UX fix.
+- 2026-05-25: Fixed Caddy entry application to pass `--adapter caddyfile` for both validate and reload operations so OMO-managed snippet files with `.tmp` names are parsed as Caddyfile syntax instead of JSON.
+- 2026-05-25: Improved bootstrap Phase 2 failure reporting so Caddy configuration errors are preserved in initialization events and no longer collapse into a generic startup failure.
+- 2026-05-25: Refreshed Linux bootstrap archives after the Caddyfile adapter fix.
+- 2026-05-25: `go test ./...` and `pnpm --dir web build` passed after the Caddyfile adapter fix.
 - `bash -n scripts/install.sh`: passed.
 - `scripts/install.sh --dry-run`: passed with sqlite/Caddy preparation, time-sync check, root-only initialization env/link files, temporary init service, init watcher, firewall guidance, and direct one-time initialization link output.
 - `/mnt/c/Program Files/Go/bin/go.exe test ./...`: passed.

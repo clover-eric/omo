@@ -1069,6 +1069,10 @@ func writeBootstrapError(w http.ResponseWriter, r *http.Request, err error) {
 		respondError(w, r, http.StatusBadRequest, "DOMAIN_NOT_RESOLVED", "Domain DNS does not currently resolve to this server. Check DNS records and retry.", nil)
 	case strings.Contains(err.Error(), "port unavailable"):
 		respondError(w, r, http.StatusBadRequest, "PORT_UNAVAILABLE", "Ports 80 or 443 are unavailable. Release the required ports and retry.", nil)
+	case strings.Contains(err.Error(), "caddy ") ||
+		strings.Contains(err.Error(), "Caddyfile") ||
+		strings.Contains(err.Error(), "certificate"):
+		respondError(w, r, http.StatusBadGateway, "CADDY_CONFIG_FAILED", "Caddy entry configuration failed. Check the initialization event log for the exact error and retry.", nil)
 	default:
 		respondError(w, r, http.StatusInternalServerError, "BOOTSTRAP_START_FAILED", "Initialization failed to start. Check service logs and retry.", nil)
 	}
