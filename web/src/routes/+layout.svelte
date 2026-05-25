@@ -3,14 +3,14 @@
   import Moon from '@lucide/svelte/icons/moon';
   import Sun from '@lucide/svelte/icons/sun';
   import { onMount } from 'svelte';
-  import { page } from '$app/stores';
+  import { page } from '$app/state';
   import { consoleLabels } from '$lib/consoleCopy';
   import { initPreferences, preferences, toggleLanguage, toggleTheme } from '$lib/preferences';
   import '../styles.css';
 
   let { children } = $props();
   let labels = $derived(consoleLabels($preferences.language));
-  let showFloatingPreferences = $derived(!isConsolePath($page.url.pathname));
+  let showFloatingPreferences = $derived(!isConsolePath(page.url.pathname));
 
   onMount(() => {
     initPreferences();

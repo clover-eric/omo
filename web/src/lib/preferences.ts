@@ -64,7 +64,7 @@ function persistPreferences(next: Preferences) {
 }
 
 function applyPreferences(next: Preferences) {
-  if (typeof document === 'undefined') {
+  if (typeof document === 'undefined' || typeof window === 'undefined') {
     return;
   }
   document.documentElement.lang = next.language;

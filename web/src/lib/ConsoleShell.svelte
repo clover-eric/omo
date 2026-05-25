@@ -3,7 +3,7 @@
   import Moon from '@lucide/svelte/icons/moon';
   import Sun from '@lucide/svelte/icons/sun';
   import type { Snippet } from 'svelte';
-  import { page } from '$app/stores';
+  import { page } from '$app/state';
   import { consoleLabels, consoleNavItems } from '$lib/consoleCopy';
   import { preferences, toggleLanguage, toggleTheme } from '$lib/preferences';
 
@@ -28,7 +28,7 @@
   let labels = $derived(consoleLabels($preferences.language));
 
   function isActive(href: string) {
-    const path = activeHref || $page.url.pathname;
+    const path = activeHref || page.url.pathname;
     return path === href || (href === '/services' && path === '/');
   }
 </script>
