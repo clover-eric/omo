@@ -26,13 +26,24 @@ type Validator interface {
 	Validate(ctx context.Context, path string) error
 }
 
+type CoreReloader interface {
+	Reload(ctx context.Context, configPath string) error
+}
+
+type EntryRouteUpdater interface {
+	EnsureAccessRoutes(ctx context.Context, upstream string) error
+}
+
 type JSONValidator struct{}
 
 type Options struct {
-	ConfigPath string
-	BackupDir  string
-	Registry   *protocol.Registry
-	Validator  Validator
+	ConfigPath        string
+	BackupDir         string
+	Registry          *protocol.Registry
+	Validator         Validator
+	CoreReloader      CoreReloader
+	EntryRouteUpdater EntryRouteUpdater
+	PanelUpstream     string
 }
 
 type Manager struct {
@@ -40,6 +51,9 @@ type Manager struct {
 	backupDir  string
 	registry   *protocol.Registry
 	validator  Validator
+	reloader   CoreReloader
+	entry      EntryRouteUpdater
+	upstream   string
 }
 
 type Result struct {
@@ -52,6 +66,9 @@ type Result struct {
 	BackupPath         string `json:"backupPath,omitempty"`
 	RolledBack         bool   `json:"rolledBack"`
 	ListenPort         int    `json:"listenPort"`
+	AccessUsername     string `json:"-"`
+	AccessPassword     string `json:"-"`
+	AccessPath         string `json:"accessPath,omitempty"`
 }
 
 type document struct {
@@ -87,6 +104,9 @@ func NewManager(options Options) (*Manager, error) {
 		backupDir:  filepath.Clean(backupDir),
 		registry:   registry,
 		validator:  validator,
+		reloader:   options.CoreReloader,
+		entry:      options.EntryRouteUpdater,
+		upstream:   strings.TrimSpace(options.PanelUpstream),
 	}, nil
 }
 
@@ -99,7 +119,13 @@ func (m *Manager) Apply(ctx context.Context, profileID string) (Result, error) {
 		return Result{}, fmt.Errorf("%w: %s", ErrInvalidProfile, profileID)
 	}
 	version := time.Now().UTC().Format("20060102150405")
-	rendered, err := render(profile, version)
+	accessPassword, err := secureHex(24)
+	if err != nil {
+		return Result{}, err
+	}
+	accessUsername := "omo"
+	accessPath := accessPath(profile.ID)
+	rendered, err := render(profile, version, accessUsername, accessPassword, accessPath)
 	if err != nil {
 		return Result{}, err
 	}
@@ -132,6 +158,18 @@ func (m *Manager) Apply(ctx context.Context, profileID string) (Result, error) {
 		_ = m.restorePrevious()
 		return Result{}, err
 	}
+	if m.entry != nil {
+		if err := m.entry.EnsureAccessRoutes(ctx, m.upstream); err != nil {
+			_ = m.restorePrevious()
+			return Result{}, err
+		}
+	}
+	if m.reloader != nil {
+		if err := m.reloader.Reload(ctx, m.configPath); err != nil {
+			_ = m.restorePrevious()
+			return Result{}, err
+		}
+	}
 
 	return Result{
 		ProfileID:          profile.ID,
@@ -143,6 +181,9 @@ func (m *Manager) Apply(ctx context.Context, profileID string) (Result, error) {
 		BackupPath:         backupPath,
 		RolledBack:         false,
 		ListenPort:         listenPort(profile.ID),
+		AccessUsername:     accessUsername,
+		AccessPassword:     accessPassword,
+		AccessPath:         accessPath,
 	}, nil
 }
 
@@ -183,6 +224,11 @@ func (m *Manager) Rollback(ctx context.Context, profileID string) (Result, error
 	if err := m.validator.Validate(ctx, m.configPath); err != nil {
 		return Result{}, err
 	}
+	if m.reloader != nil {
+		if err := m.reloader.Reload(ctx, m.configPath); err != nil {
+			return Result{}, err
+		}
+	}
 
 	return Result{
 		ProfileID:          profile.ID,
@@ -194,6 +240,7 @@ func (m *Manager) Rollback(ctx context.Context, profileID string) (Result, error
 		BackupPath:         backupPath,
 		RolledBack:         true,
 		ListenPort:         listenPort(profile.ID),
+		AccessPath:         accessPath(profile.ID),
 	}, nil
 }
 
@@ -241,20 +288,23 @@ func (m *Manager) previousPath() string {
 	return m.configPath + ".previous"
 }
 
-func render(profile protocol.ServiceProfile, version string) ([]byte, error) {
-	secret, err := secureHex(24)
-	if err != nil {
-		return nil, err
-	}
+func render(profile protocol.ServiceProfile, version string, accessUsername string, accessPassword string, accessPath string) ([]byte, error) {
 	inbound := map[string]any{
-		"type":        "mixed",
+		"type":        "trojan",
 		"tag":         "omo-" + profile.ID + "-" + version,
 		"listen":      "127.0.0.1",
 		"listen_port": listenPort(profile.ID),
 		"users": []map[string]any{{
-			"username": "omo",
-			"password": secret,
+			"name":     accessUsername,
+			"password": accessPassword,
 		}},
+		"transport": map[string]any{
+			"type": "ws",
+			"path": accessPath,
+			"headers": map[string]string{
+				"X-OMO-Service": profile.ID,
+			},
+		},
 	}
 	doc := document{
 		Log: map[string]any{
@@ -293,6 +343,14 @@ func listenPort(profileID string) int {
 	default:
 		return 21090
 	}
+}
+
+func accessPath(profileID string) string {
+	clean := strings.Trim(strings.TrimSpace(profileID), "/")
+	if clean == "" {
+		clean = "default"
+	}
+	return "/omo-access/" + clean
 }
 
 func secureHex(size int) (string, error) {

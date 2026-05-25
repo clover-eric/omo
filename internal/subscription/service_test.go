@@ -40,8 +40,36 @@ func TestPublicContentIncludesActiveServiceMetadata(t *testing.T) {
 		t.Fatalf("public content: %v", err)
 	}
 	body := string(response.Body)
-	if !strings.Contains(body, `"services"`) || !strings.Contains(body, `"Team access"`) || !strings.Contains(body, `"listenPort": 21080`) {
+	if !strings.Contains(body, `"services"`) || !strings.Contains(body, `"Team access"`) || !strings.Contains(body, `"listenPort": 21080`) || !strings.Contains(body, `"type": "trojan"`) || !strings.Contains(body, `"transport"`) {
 		t.Fatalf("expected active service metadata in subscription, got %s", body)
+	}
+	clash, err := NewService(appStore, "https://ops.example.com").PublicContent(ctx, PublicRequest{
+		Token:      token,
+		Format:     "clash",
+		ClientHint: "clash",
+		RemoteAddr: "127.0.0.1:12345",
+		BaseURL:    "https://ops.example.com",
+	})
+	if err != nil {
+		t.Fatalf("clash public content: %v", err)
+	}
+	clashBody := string(clash.Body)
+	if !strings.Contains(clashBody, "type: trojan") || strings.Contains(clashBody, "proxies: []") || !strings.Contains(clashBody, "network: ws") || strings.Contains(clashBody, `MATCH,"Operations devices"`) {
+		t.Fatalf("expected concrete Clash proxy entry, got %s", clashBody)
+	}
+	uri, err := NewService(appStore, "https://ops.example.com").PublicContent(ctx, PublicRequest{
+		Token:      token,
+		Format:     "uri",
+		ClientHint: "shadowrocket",
+		RemoteAddr: "127.0.0.1:12345",
+		BaseURL:    "https://ops.example.com",
+	})
+	if err != nil {
+		t.Fatalf("uri public content: %v", err)
+	}
+	uriBody := string(uri.Body)
+	if !strings.Contains(uriBody, "trojan://") || strings.Contains(uriBody, "https://ops.example.com/s/") {
+		t.Fatalf("expected concrete client URI, got %s", uriBody)
 	}
 
 	expired := time.Now().UTC().Add(-time.Minute)

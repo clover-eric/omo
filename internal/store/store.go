@@ -58,14 +58,17 @@ type DistributionToken struct {
 }
 
 type ServiceInstance struct {
-	ID            string    `json:"id"`
-	ProfileID     string    `json:"profileId"`
-	DisplayName   string    `json:"displayName"`
-	ListenPort    int       `json:"listenPort"`
-	Status        string    `json:"status"`
-	ConfigVersion string    `json:"configVersion"`
-	CreatedAt     time.Time `json:"createdAt"`
-	UpdatedAt     time.Time `json:"updatedAt"`
+	ID             string    `json:"id"`
+	ProfileID      string    `json:"profileId"`
+	DisplayName    string    `json:"displayName"`
+	ListenPort     int       `json:"listenPort"`
+	AccessUsername string    `json:"-"`
+	AccessPassword string    `json:"-"`
+	AccessPath     string    `json:"accessPath,omitempty"`
+	Status         string    `json:"status"`
+	ConfigVersion  string    `json:"configVersion"`
+	CreatedAt      time.Time `json:"createdAt"`
+	UpdatedAt      time.Time `json:"updatedAt"`
 }
 
 type DiagnosticReport struct {
@@ -530,15 +533,25 @@ func (s *Store) EnsureServiceProfile(ctx context.Context, profileID string, vers
 }
 
 func (s *Store) CreateServiceInstance(ctx context.Context, profileID string, displayName string, listenPort int, status string, configVersion string) (ServiceInstance, error) {
+	accessUsername := "omo"
+	accessPassword := secureSecret(24)
+	profileID = strings.TrimSpace(profileID)
+	accessPath := "/omo-access/" + strings.Trim(profileID, "/")
+	if accessPath == "/omo-access/" {
+		accessPath += randomTokenHex(8)
+	}
 	record := ServiceInstance{
-		ID:            randomID("svc"),
-		ProfileID:     strings.TrimSpace(profileID),
-		DisplayName:   strings.TrimSpace(displayName),
-		ListenPort:    listenPort,
-		Status:        strings.TrimSpace(status),
-		ConfigVersion: strings.TrimSpace(configVersion),
-		CreatedAt:     time.Now().UTC(),
-		UpdatedAt:     time.Now().UTC(),
+		ID:             randomID("svc"),
+		ProfileID:      profileID,
+		DisplayName:    strings.TrimSpace(displayName),
+		ListenPort:     listenPort,
+		AccessUsername: accessUsername,
+		AccessPassword: accessPassword,
+		AccessPath:     accessPath,
+		Status:         strings.TrimSpace(status),
+		ConfigVersion:  strings.TrimSpace(configVersion),
+		CreatedAt:      time.Now().UTC(),
+		UpdatedAt:      time.Now().UTC(),
 	}
 	if record.DisplayName == "" {
 		record.DisplayName = record.ProfileID
@@ -546,12 +559,15 @@ func (s *Store) CreateServiceInstance(ctx context.Context, profileID string, dis
 	now := nowString()
 	_, err := s.db.ExecContext(
 		ctx,
-		`INSERT INTO service_instances (id, profile_id, display_name, listen_port, status, config_version, created_at, updated_at)
-		 VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+		`INSERT INTO service_instances (id, profile_id, display_name, listen_port, access_username, access_password, access_path, status, config_version, created_at, updated_at)
+		 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
 		record.ID,
 		record.ProfileID,
 		record.DisplayName,
 		record.ListenPort,
+		record.AccessUsername,
+		record.AccessPassword,
+		record.AccessPath,
 		record.Status,
 		record.ConfigVersion,
 		now,
@@ -568,7 +584,7 @@ func (s *Store) CreateServiceInstance(ctx context.Context, profileID string, dis
 func (s *Store) ListServiceInstances(ctx context.Context) ([]ServiceInstance, error) {
 	rows, err := s.db.QueryContext(
 		ctx,
-		`SELECT id, profile_id, display_name, listen_port, status, config_version, created_at, updated_at
+		`SELECT id, profile_id, display_name, listen_port, access_username, access_password, access_path, status, config_version, created_at, updated_at
 		 FROM service_instances
 		 ORDER BY created_at DESC`,
 	)
@@ -627,23 +643,99 @@ func (s *Store) UpdateServiceInstance(ctx context.Context, id string, displayNam
 	return s.ServiceInstanceByID(ctx, id)
 }
 
-func (s *Store) ActivateServiceInstancesForProfile(ctx context.Context, profileID string, displayName string, listenPort int, configVersion string) ([]ServiceInstance, error) {
+func (s *Store) EnsureServiceInstanceAccess(ctx context.Context, id string) (*ServiceInstance, error) {
+	current, err := s.ServiceInstanceByID(ctx, id)
+	if err != nil || current == nil {
+		return current, err
+	}
+	accessUsername := strings.TrimSpace(current.AccessUsername)
+	accessPassword := strings.TrimSpace(current.AccessPassword)
+	accessPath := strings.TrimSpace(current.AccessPath)
+	changed := false
+	if accessUsername == "" {
+		accessUsername = "omo"
+		changed = true
+	}
+	if accessPassword == "" {
+		accessPassword = secureSecret(24)
+		changed = true
+	}
+	if accessPath == "" {
+		accessPath = "/omo-access/" + strings.Trim(strings.TrimSpace(current.ProfileID), "/")
+		if accessPath == "/omo-access/" {
+			accessPath += randomTokenHex(8)
+		}
+		changed = true
+	}
+	if !strings.HasPrefix(accessPath, "/") {
+		accessPath = "/" + accessPath
+		changed = true
+	}
+	if !changed {
+		return current, nil
+	}
+	_, err = s.db.ExecContext(
+		ctx,
+		`UPDATE service_instances
+		 SET access_username = ?, access_password = ?, access_path = ?, updated_at = ?
+		 WHERE id = ?`,
+		accessUsername,
+		accessPassword,
+		accessPath,
+		nowString(),
+		id,
+	)
+	if err != nil {
+		return nil, err
+	}
+	return s.ServiceInstanceByID(ctx, id)
+}
+
+func (s *Store) ActivateServiceInstancesForProfile(ctx context.Context, profileID string, displayName string, listenPort int, configVersion string, accessUsername string, accessPassword string, accessPath string) ([]ServiceInstance, error) {
 	profileID = strings.TrimSpace(profileID)
 	displayName = strings.TrimSpace(displayName)
 	configVersion = strings.TrimSpace(configVersion)
+	accessUsername = strings.TrimSpace(accessUsername)
+	accessPassword = strings.TrimSpace(accessPassword)
+	accessPath = strings.TrimSpace(accessPath)
 	if displayName == "" {
 		displayName = profileID
 	}
 	if configVersion == "" {
 		configVersion = "active"
 	}
+	if accessUsername == "" {
+		accessUsername = "omo"
+	}
+	if accessPassword == "" {
+		accessPassword = secureSecret(24)
+	}
+	if accessPath == "" {
+		accessPath = "/omo-access/" + randomTokenHex(8)
+	}
+	if !strings.HasPrefix(accessPath, "/") {
+		accessPath = "/" + accessPath
+	}
+	if _, err := s.db.ExecContext(
+		ctx,
+		`UPDATE service_instances
+		 SET status = 'planned', updated_at = ?
+		 WHERE profile_id <> ? AND status = 'active'`,
+		nowString(),
+		profileID,
+	); err != nil {
+		return nil, err
+	}
 	result, err := s.db.ExecContext(
 		ctx,
 		`UPDATE service_instances
-		 SET status = 'active', display_name = CASE WHEN display_name = '' THEN ? ELSE display_name END, listen_port = ?, config_version = ?, updated_at = ?
+		 SET status = 'active', display_name = CASE WHEN display_name = '' THEN ? ELSE display_name END, listen_port = ?, access_username = ?, access_password = ?, access_path = ?, config_version = ?, updated_at = ?
 		 WHERE profile_id = ? AND status IN ('planned', 'active')`,
 		displayName,
 		listenPort,
+		accessUsername,
+		accessPassword,
+		accessPath,
 		configVersion,
 		nowString(),
 		profileID,
@@ -656,7 +748,21 @@ func (s *Store) ActivateServiceInstancesForProfile(ctx context.Context, profileI
 		return nil, err
 	}
 	if affected == 0 {
-		if _, err := s.CreateServiceInstance(ctx, profileID, displayName, listenPort, "active", configVersion); err != nil {
+		created, err := s.CreateServiceInstance(ctx, profileID, displayName, listenPort, "active", configVersion)
+		if err != nil {
+			return nil, err
+		}
+		if _, err := s.db.ExecContext(
+			ctx,
+			`UPDATE service_instances
+			 SET access_username = ?, access_password = ?, access_path = ?, updated_at = ?
+			 WHERE id = ?`,
+			accessUsername,
+			accessPassword,
+			accessPath,
+			nowString(),
+			created.ID,
+		); err != nil {
 			return nil, err
 		}
 	}
@@ -686,7 +792,7 @@ func (s *Store) DeactivateServiceInstancesForProfile(ctx context.Context, profil
 func (s *Store) ServiceInstancesByProfile(ctx context.Context, profileID string) ([]ServiceInstance, error) {
 	rows, err := s.db.QueryContext(
 		ctx,
-		`SELECT id, profile_id, display_name, listen_port, status, config_version, created_at, updated_at
+		`SELECT id, profile_id, display_name, listen_port, access_username, access_password, access_path, status, config_version, created_at, updated_at
 		 FROM service_instances
 		 WHERE profile_id = ?
 		 ORDER BY created_at DESC`,
@@ -711,7 +817,7 @@ func (s *Store) ServiceInstancesByProfile(ctx context.Context, profileID string)
 func (s *Store) ServiceInstanceByID(ctx context.Context, id string) (*ServiceInstance, error) {
 	row := s.db.QueryRowContext(
 		ctx,
-		`SELECT id, profile_id, display_name, listen_port, status, config_version, created_at, updated_at
+		`SELECT id, profile_id, display_name, listen_port, access_username, access_password, access_path, status, config_version, created_at, updated_at
 		 FROM service_instances WHERE id = ?`,
 		id,
 	)
@@ -1632,6 +1738,9 @@ func scanServiceInstance(row rowScanner) (ServiceInstance, error) {
 		&record.ProfileID,
 		&record.DisplayName,
 		&record.ListenPort,
+		&record.AccessUsername,
+		&record.AccessPassword,
+		&record.AccessPath,
 		&record.Status,
 		&record.ConfigVersion,
 		&createdAt,
@@ -1806,11 +1915,22 @@ func nowString() string {
 }
 
 func randomID(prefix string) string {
+	return prefix + "_" + randomTokenHex(16)
+}
+
+func secureSecret(size int) string {
+	return randomTokenHex(size)
+}
+
+func randomTokenHex(size int) string {
 	raw := make([]byte, 16)
+	if size > 0 {
+		raw = make([]byte, size)
+	}
 	if _, err := rand.Read(raw); err != nil {
 		panic(err)
 	}
-	return prefix + "_" + hex.EncodeToString(raw)
+	return hex.EncodeToString(raw)
 }
 
 func sqliteQuote(value string) string {

@@ -27,7 +27,7 @@ type JobStore interface {
 
 type ServiceInstanceStore interface {
 	EnsureServiceProfile(ctx context.Context, profileID string, version string, displayName string, expertProtocol string) error
-	ActivateServiceInstancesForProfile(ctx context.Context, profileID string, displayName string, listenPort int, configVersion string) ([]store.ServiceInstance, error)
+	ActivateServiceInstancesForProfile(ctx context.Context, profileID string, displayName string, listenPort int, configVersion string, accessUsername string, accessPassword string, accessPath string) ([]store.ServiceInstance, error)
 	DeactivateServiceInstancesForProfile(ctx context.Context, profileID string, configVersion string) ([]store.ServiceInstance, error)
 }
 
@@ -140,7 +140,7 @@ func (s *Service) activateInstances(ctx context.Context, result Result) ([]store
 	if err := instanceStore.EnsureServiceProfile(ctx, result.ProfileID, result.ProfileVersion, result.ProfileDisplayName, result.ExpertProtocol); err != nil {
 		return nil, err
 	}
-	return instanceStore.ActivateServiceInstancesForProfile(ctx, result.ProfileID, result.ProfileDisplayName, result.ListenPort, result.ConfigVersion)
+	return instanceStore.ActivateServiceInstancesForProfile(ctx, result.ProfileID, result.ProfileDisplayName, result.ListenPort, result.ConfigVersion, result.AccessUsername, result.AccessPassword, result.AccessPath)
 }
 
 func (s *Service) deactivateInstances(ctx context.Context, result Result) ([]store.ServiceInstance, error) {

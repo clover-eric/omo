@@ -44,6 +44,9 @@ func TestServiceApplyAndRollbackUpdatesManagedInstances(t *testing.T) {
 	if len(applyResult.Instances) != 1 || applyResult.Instances[0].ID != planned.ID || applyResult.Instances[0].Status != "active" || applyResult.Instances[0].ListenPort != 21080 {
 		t.Fatalf("expected active service instance in apply result, got %#v", applyResult.Instances)
 	}
+	if applyResult.Instances[0].AccessPassword == "" || applyResult.Instances[0].AccessPath != "/omo-access/standard-secure-access" {
+		t.Fatalf("expected persisted access material in apply result, got %#v", applyResult.Instances[0])
+	}
 
 	rollbackResult, err := service.Rollback(ctx, "standard-secure-access")
 	if err != nil {

@@ -1336,6 +1336,9 @@ components:
           type: string
         listenPort:
           type: integer
+        accessPath:
+          type: string
+          description: Backend-owned HTTPS access path used by generated subscriptions; credentials are never returned through management APIs.
         status:
           type: string
           enum:

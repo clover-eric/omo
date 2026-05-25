@@ -62,6 +62,7 @@
 - [x] Implement system overview API declared by OpenAPI.
 - [x] Implement config apply and rollback.
 - [x] Synchronize service instance state through config apply and rollback jobs.
+- [x] Start/reload the managed sing-box entry after successful config apply and keep service credentials synchronized with subscription output.
 - [x] Implement dashboard service cards.
 - [x] Add `/services` frontend route for the service library.
 - [x] Rework `/services` into a guided access-plan workflow with profile selection, instance status, backend apply state, and expert details separated from the ordinary operator path.
@@ -77,6 +78,7 @@
 - [x] Add configuration distribution UI for token create/rotate, import URL copy, and QR preview.
 - [x] Add subscription status update and deletion APIs, with frontend management for select, rotate-and-reveal, enable/disable, delete, and one-time token visibility.
 - [x] Generate subscription and QR URLs from the public HTTPS panel domain or trusted loopback reverse-proxy headers instead of loopback service addresses.
+- [x] Generate concrete sing-box, Clash/Mihomo, and direct URI client entries from active backend-owned service credentials instead of placeholder metadata.
 - [x] Replace fragile hand-written QR generation with standard QR encoding and make scanned codes land on a clear mobile import selection page.
 - [x] Clarify the Service Library to Configuration Distribution workflow so operators can see the path from active service instance to device import.
 

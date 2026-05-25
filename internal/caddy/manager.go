@@ -162,9 +162,63 @@ func (m *Manager) RenderConfig(domain string, upstream string) string {
 		X-Content-Type-Options "nosniff"
 		Referrer-Policy "same-origin"
 	}
+%s
 	reverse_proxy %s
 }
-`, strings.TrimSpace(domain), strings.TrimSpace(upstream))
+`, strings.TrimSpace(domain), accessRouteBlock(), strings.TrimSpace(upstream))
+}
+
+func (m *Manager) EnsureAccessRoutes(ctx context.Context, upstream string) error {
+	if strings.TrimSpace(m.ConfigPath) == "" {
+		return ErrConfigPathEmpty
+	}
+	current, _, err := readMaybe(m.ConfigPath)
+	if err != nil {
+		return err
+	}
+	rendered := ensureAccessRoutesInConfig(string(current), strings.TrimSpace(upstream))
+	if rendered == string(current) {
+		return nil
+	}
+	return m.ApplyConfig(ctx, rendered)
+}
+
+func ensureAccessRoutesInConfig(config string, upstream string) string {
+	if strings.Contains(config, "@omo_access_standard") {
+		return config
+	}
+	block := accessRouteBlock()
+	if upstream != "" {
+		target := "\treverse_proxy " + upstream
+		if strings.Contains(config, target) {
+			return strings.Replace(config, target, block+"\n"+target, 1)
+		}
+	}
+	idx := strings.LastIndex(config, "\n}")
+	if idx < 0 {
+		return config
+	}
+	return config[:idx] + "\n" + block + config[idx:]
+}
+
+func accessRouteBlock() string {
+	routes := []struct {
+		Name string
+		Path string
+		Port int
+	}{
+		{"standard", "/omo-access/standard-secure-access", 21080},
+		{"throughput", "/omo-access/high-throughput-access", 21081},
+		{"compatibility", "/omo-access/broad-compatibility-access", 21082},
+		{"fallback", "/omo-access/lightweight-fallback-access", 21083},
+		{"mobile", "/omo-access/mobile-optimized-access", 21084},
+	}
+	var b strings.Builder
+	for _, route := range routes {
+		fmt.Fprintf(&b, "\t@omo_access_%s path %s\n", route.Name, route.Path)
+		fmt.Fprintf(&b, "\treverse_proxy @omo_access_%s 127.0.0.1:%d\n", route.Name, route.Port)
+	}
+	return strings.TrimRight(b.String(), "\n")
 }
 
 func (m *Manager) ApplyConfig(ctx context.Context, rendered string) error {

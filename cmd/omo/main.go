@@ -97,12 +97,21 @@ func run() error {
 	if err != nil {
 		return err
 	}
+	coreSupervisor := singbox.NewSupervisor(*singBoxPath)
 	configManager, err := configgen.NewManager(configgen.Options{
-		ConfigPath: *singBoxConfigPath,
-		Registry:   profileRegistry,
+		ConfigPath:        *singBoxConfigPath,
+		Registry:          profileRegistry,
+		CoreReloader:      coreSupervisor,
+		EntryRouteUpdater: caddyManager,
+		PanelUpstream:     upstream,
 	})
 	if err != nil {
 		return err
+	}
+	if _, err := os.Stat(*singBoxConfigPath); err == nil {
+		if err := coreSupervisor.Reload(ctx, *singBoxConfigPath); err != nil {
+			slog.Warn("existing access core config could not be started", "error", err)
+		}
 	}
 	configSvc := configgen.NewService(configManager, appStore)
 	subscriptionSvc := subscription.NewService(appStore, *publicURL)
@@ -164,6 +173,7 @@ func run() error {
 	select {
 	case sig := <-stopCh:
 		slog.Info("shutdown signal received", "signal", sig.String())
+		_ = coreSupervisor.Stop()
 		shutdownCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 		defer cancel()
 		return server.Shutdown(shutdownCtx)

@@ -83,10 +83,11 @@ After initialization settings indicate the panel entry is configured, `internal/
 - It renders service profile selections into an OMO-managed sing-box JSON document.
 - It writes a temporary file, validates JSON, backs up the active config, atomically replaces the managed config path, and validates the applied file.
 - If post-apply validation fails, it restores the previous validated config.
+- Successful apply now renders a localhost WebSocket service entry, ensures the matching Caddy HTTPS route exists, starts or reloads the managed sing-box process, and stores the generated service access material in SQLite for subscription distribution.
 - `/api/system/overview` returns bootstrap, access-core, version, and service/profile counts for the console overview.
 - `/api/services`, `POST /api/services`, and `PATCH /api/services/{id}` expose the persisted managed service instance catalog declared by OpenAPI.
 - `/api/services/{id}/apply` and `/api/services/{id}/rollback` create durable jobs and return the unified API envelope.
-- Successful apply synchronizes matching planned service instances to `active` with the backend-selected listen port and configuration version. Successful rollback moves active instances for that profile back to `planned`.
+- Successful apply synchronizes matching planned service instances to `active` with the backend-selected listen port, configuration version, access path, and backend-generated credential. Other active profile instances are returned to `planned` so subscriptions do not publish stale entries. Successful rollback moves active instances for that profile back to `planned`.
 - The installer runs the regular and temporary OMO services with an absolute managed core configuration path at `/var/lib/omo/sing-box/config.json`, plus `/var/lib/omo/updates` and `/var/backups/omo`, so systemd hardening does not leave service configuration writes in an ambiguous relative working directory.
 
 This is intentionally file-level and backend-only. Later Phase 3 work can swap the JSON validator for `sing-box check`, then add service reload and health checks without changing the public API contract.
@@ -101,9 +102,9 @@ The Svelte service library consumes `/api/services`, `/api/core/singbox/status`,
 - Token plaintext is returned only immediately after create or rotate.
 - `/s/{token}` validates active, unexpired tokens, records a request event with a hashed remote address, and returns one of several backend-generated formats.
 - Known client hints can receive a specific format automatically; unknown clients receive an adaptive HTML import page with manual format choices.
-- Public sing-box and Clash/Mihomo descriptors include metadata for currently active managed service instances so distributed clients can identify the backend-owned service catalog state without the frontend generating core configuration.
+- Public sing-box, Clash/Mihomo, and direct URI descriptors include concrete client entries for currently active managed service instances, using backend-owned credentials and HTTPS WebSocket routing while preserving service metadata for auditability.
 
-The Phase 4 implementation outputs sing-box JSON, Clash/Mihomo-style YAML text, direct URI text, QR code SVG, and the adaptive import page. The Svelte console includes a configuration distribution page for creating distribution entries, selecting historical records, rotating to reveal a new one-time import URL, copying available formats, previewing QR output, disabling/enabling entries, and deleting entries. Historical plaintext URLs are intentionally not redisplayed; rotation is the safe reveal path.
+The Phase 4 implementation outputs sing-box JSON, Clash/Mihomo-style YAML text, direct URI text, QR code SVG, and the adaptive import page. Client descriptors are generated only by the backend from persisted service credentials; the frontend never assembles core configuration. The Svelte console includes a configuration distribution page for creating distribution entries, selecting historical records, rotating to reveal a new one-time import URL, copying available formats, previewing QR output, disabling/enabling entries, and deleting entries. Historical plaintext URLs are intentionally not redisplayed; rotation is the safe reveal path.
 
 ## Phase 5 Server Checkup
 

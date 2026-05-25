@@ -122,6 +122,18 @@ func TestApplyConfigUsesCaddyfileAdapter(t *testing.T) {
 	}
 }
 
+func TestRenderConfigIncludesAccessRoutes(t *testing.T) {
+	manager := NewManager(filepath.Join(t.TempDir(), "omo.caddy"))
+
+	rendered := manager.RenderConfig("ops.example.com", "127.0.0.1:8080")
+
+	if !strings.Contains(rendered, "@omo_access_standard path /omo-access/standard-secure-access") ||
+		!strings.Contains(rendered, "reverse_proxy @omo_access_standard 127.0.0.1:21080") ||
+		!strings.Contains(rendered, "reverse_proxy 127.0.0.1:8080") {
+		t.Fatalf("expected access routes plus panel upstream, got %s", rendered)
+	}
+}
+
 func TestAvailableChecksCaddyBinary(t *testing.T) {
 	manager := NewManager("")
 	manager.Runner = &fakeRunner{lookPath: errors.New("not found")}

@@ -9,7 +9,10 @@ import (
 	"errors"
 	"fmt"
 	"html"
+	"net"
 	"net/http"
+	"net/url"
+	"strconv"
 	"strings"
 	"time"
 
@@ -34,6 +37,10 @@ type Store interface {
 
 type serviceInstanceReader interface {
 	ListServiceInstances(ctx context.Context) ([]store.ServiceInstance, error)
+}
+
+type serviceInstanceAccessEnsurer interface {
+	EnsureServiceInstanceAccess(ctx context.Context, id string) (*store.ServiceInstance, error)
 }
 
 type Service struct {
@@ -220,7 +227,7 @@ func (s *Service) PublicContent(ctx context.Context, req PublicRequest) (PublicR
 	case "clash":
 		return PublicResponse{ContentType: "text/plain; charset=utf-8", Body: []byte(clashDescriptor(record.Name, publicURL, instances))}, nil
 	case "uri":
-		return PublicResponse{ContentType: "text/plain; charset=utf-8", Body: []byte(publicURL + "\n")}, nil
+		return PublicResponse{ContentType: "text/plain; charset=utf-8", Body: []byte(uriDescriptor(publicURL, instances))}, nil
 	case "qr":
 		body, err := qrSVG(publicURL)
 		if err != nil {
@@ -243,6 +250,8 @@ func normalizeFormat(format string, clientHint string) string {
 		return "sing-box"
 	case strings.Contains(hint, "clash"), strings.Contains(hint, "mihomo"):
 		return "clash"
+	case strings.Contains(hint, "shadowrocket"), strings.Contains(hint, "stash"), strings.Contains(hint, "nekobox"):
+		return "uri"
 	default:
 		return "html"
 	}
@@ -278,6 +287,17 @@ func (s *Service) activeServiceInstances(ctx context.Context) ([]store.ServiceIn
 	active := make([]store.ServiceInstance, 0, len(instances))
 	for _, instance := range instances {
 		if instance.Status == "active" {
+			if strings.TrimSpace(instance.AccessPassword) == "" || strings.TrimSpace(instance.AccessPath) == "" {
+				if ensurer, ok := s.store.(serviceInstanceAccessEnsurer); ok {
+					ensured, err := ensurer.EnsureServiceInstanceAccess(ctx, instance.ID)
+					if err != nil {
+						return nil, err
+					}
+					if ensured != nil {
+						instance = *ensured
+					}
+				}
+			}
 			active = append(active, instance)
 		}
 	}
@@ -285,6 +305,13 @@ func (s *Service) activeServiceInstances(ctx context.Context) ([]store.ServiceIn
 }
 
 func singBoxDescriptor(name string, publicURL string, instances []store.ServiceInstance) map[string]any {
+	outbounds := singBoxOutbounds(publicURL, instances)
+	final := "direct"
+	if len(outbounds) > 1 {
+		if tag, ok := outbounds[0]["tag"].(string); ok && tag != "" {
+			final = tag
+		}
+	}
 	return map[string]any{
 		"_omo": map[string]any{
 			"name":      name,
@@ -295,13 +322,10 @@ func singBoxDescriptor(name string, publicURL string, instances []store.ServiceI
 		"log": map[string]any{
 			"level": "info",
 		},
-		"inbounds": []map[string]any{},
-		"outbounds": []map[string]any{{
-			"type": "direct",
-			"tag":  "direct",
-		}},
+		"inbounds":  []map[string]any{},
+		"outbounds": outbounds,
 		"route": map[string]any{
-			"final": "direct",
+			"final": final,
 		},
 		"experimental": map[string]any{
 			"cache_file": map[string]any{
@@ -314,11 +338,178 @@ func singBoxDescriptor(name string, publicURL string, instances []store.ServiceI
 func clashDescriptor(name string, publicURL string, instances []store.ServiceInstance) string {
 	var b strings.Builder
 	b.WriteString(fmt.Sprintf("# managed-by: omo\n# source: %s\n", publicURL))
-	for _, service := range serviceDescriptors(instances) {
-		b.WriteString(fmt.Sprintf("# service: %s profile=%s port=%d config=%s\n", service["name"], service["profileId"], service["listenPort"], service["configVersion"]))
+	proxies := proxyDescriptors(publicURL, instances)
+	for _, proxy := range proxies {
+		b.WriteString(fmt.Sprintf("# service: %s profile=%s config=%s\n", proxy.Name, proxy.ProfileID, proxy.ConfigVersion))
 	}
-	b.WriteString(fmt.Sprintf("proxies: []\nproxy-groups:\n  - name: %q\n    type: select\n    proxies:\n      - DIRECT\nrules:\n  - MATCH,DIRECT\n", name))
+	b.WriteString("proxies:\n")
+	if len(proxies) == 0 {
+		b.WriteString("  []\n")
+	} else {
+		for _, proxy := range proxies {
+			b.WriteString(fmt.Sprintf("  - name: %q\n", proxy.Name))
+			b.WriteString("    type: trojan\n")
+			b.WriteString(fmt.Sprintf("    server: %q\n", proxy.Host))
+			b.WriteString(fmt.Sprintf("    port: %d\n", proxy.Port))
+			b.WriteString(fmt.Sprintf("    password: %q\n", proxy.Password))
+			b.WriteString(fmt.Sprintf("    sni: %q\n", proxy.Host))
+			b.WriteString("    skip-cert-verify: false\n")
+			b.WriteString("    network: ws\n")
+			b.WriteString("    ws-opts:\n")
+			b.WriteString(fmt.Sprintf("      path: %q\n", proxy.Path))
+			b.WriteString("      headers:\n")
+			b.WriteString(fmt.Sprintf("        Host: %q\n", proxy.Host))
+		}
+	}
+	b.WriteString("proxy-groups:\n")
+	b.WriteString(fmt.Sprintf("  - name: %q\n    type: select\n    proxies:\n", name))
+	for _, proxy := range proxies {
+		b.WriteString(fmt.Sprintf("      - %q\n", proxy.Name))
+	}
+	b.WriteString("      - DIRECT\nrules:\n")
+	if len(proxies) == 0 {
+		b.WriteString("  - MATCH,DIRECT\n")
+	} else {
+		b.WriteString(fmt.Sprintf("  - MATCH,%s\n", sanitizeClashPolicyName(name)))
+	}
 	return b.String()
+}
+
+func uriDescriptor(publicURL string, instances []store.ServiceInstance) string {
+	proxies := proxyDescriptors(publicURL, instances)
+	lines := make([]string, 0, len(proxies))
+	for _, proxy := range proxies {
+		lines = append(lines, trojanURI(proxy))
+	}
+	if len(lines) == 0 {
+		return "# OMO: no active distribution-ready service is available. Apply a service in Service Library first.\n"
+	}
+	return strings.Join(lines, "\n") + "\n"
+}
+
+type proxyDescriptor struct {
+	Name          string
+	ProfileID     string
+	ConfigVersion string
+	Host          string
+	Port          int
+	Path          string
+	Password      string
+}
+
+func proxyDescriptors(publicURL string, instances []store.ServiceInstance) []proxyDescriptor {
+	host, port := subscriptionHostPort(publicURL)
+	if host == "" {
+		return nil
+	}
+	proxies := make([]proxyDescriptor, 0, len(instances))
+	for _, instance := range instances {
+		password := strings.TrimSpace(instance.AccessPassword)
+		if password == "" {
+			continue
+		}
+		path := strings.TrimSpace(instance.AccessPath)
+		if path == "" {
+			path = "/omo-access/" + strings.Trim(strings.TrimSpace(instance.ProfileID), "/")
+		}
+		if !strings.HasPrefix(path, "/") {
+			path = "/" + path
+		}
+		name := strings.TrimSpace(instance.DisplayName)
+		if name == "" {
+			name = instance.ProfileID
+		}
+		proxies = append(proxies, proxyDescriptor{
+			Name:          name,
+			ProfileID:     instance.ProfileID,
+			ConfigVersion: instance.ConfigVersion,
+			Host:          host,
+			Port:          port,
+			Path:          path,
+			Password:      password,
+		})
+	}
+	return proxies
+}
+
+func singBoxOutbounds(publicURL string, instances []store.ServiceInstance) []map[string]any {
+	proxies := proxyDescriptors(publicURL, instances)
+	outbounds := make([]map[string]any, 0, len(proxies)+1)
+	for _, proxy := range proxies {
+		outbounds = append(outbounds, map[string]any{
+			"type":        "trojan",
+			"tag":         proxy.Name,
+			"server":      proxy.Host,
+			"server_port": proxy.Port,
+			"password":    proxy.Password,
+			"tls": map[string]any{
+				"enabled":     true,
+				"server_name": proxy.Host,
+			},
+			"transport": map[string]any{
+				"type": "ws",
+				"path": proxy.Path,
+				"headers": map[string]string{
+					"Host": proxy.Host,
+				},
+			},
+		})
+	}
+	outbounds = append(outbounds, map[string]any{
+		"type": "direct",
+		"tag":  "direct",
+	})
+	return outbounds
+}
+
+func trojanURI(proxy proxyDescriptor) string {
+	u := url.URL{
+		Scheme:   "trojan",
+		User:     url.User(proxy.Password),
+		Host:     net.JoinHostPort(proxy.Host, strconv.Itoa(proxy.Port)),
+		Fragment: proxy.Name,
+	}
+	query := u.Query()
+	query.Set("security", "tls")
+	query.Set("sni", proxy.Host)
+	query.Set("type", "ws")
+	query.Set("host", proxy.Host)
+	query.Set("path", proxy.Path)
+	u.RawQuery = query.Encode()
+	return u.String()
+}
+
+func subscriptionHostPort(publicURL string) (string, int) {
+	parsed, err := url.Parse(strings.TrimSpace(publicURL))
+	if err != nil || parsed.Host == "" {
+		return "", 0
+	}
+	host := parsed.Hostname()
+	port := parsed.Port()
+	if host == "" {
+		return "", 0
+	}
+	if port != "" {
+		parsedPort, err := strconv.Atoi(port)
+		if err == nil && parsedPort > 0 && parsedPort <= 65535 {
+			return host, parsedPort
+		}
+	}
+	if parsed.Scheme == "http" {
+		return host, 80
+	}
+	return host, 443
+}
+
+func sanitizeClashPolicyName(name string) string {
+	name = strings.TrimSpace(name)
+	name = strings.ReplaceAll(name, "\r", " ")
+	name = strings.ReplaceAll(name, "\n", " ")
+	name = strings.ReplaceAll(name, ",", " ")
+	if name == "" {
+		return "OMO"
+	}
+	return name
 }
 
 func serviceDescriptors(instances []store.ServiceInstance) []map[string]any {
@@ -340,6 +531,7 @@ func serviceDescriptors(instances []store.ServiceInstance) []map[string]any {
 func importPage(name string, publicURL string) string {
 	escapedName := html.EscapeString(name)
 	escapedURL := html.EscapeString(publicURL)
+	directURL := escapedURL + "?format=uri"
 	return `<!doctype html>
 <html lang="zh-CN">
 <head>
@@ -377,20 +569,21 @@ func importPage(name string, publicURL string) string {
 <body>
   <main>
     <div class="hero">
-      <p class="eyebrow">OMO Configuration Distribution</p>
+      <p class="eyebrow">OMO Import</p>
       <h1>` + escapedName + `</h1>
-      <p>这是授权设备的配置导入页。扫码后如果没有自动唤起客户端，请按设备使用的客户端类型选择一个格式打开或复制。</p>
+      <p>Authorized device import page. Choose the format that matches your client.</p>
+      <p>Use this page for authorized device import. If scanning does not open your client automatically, choose one format below.</p>
       <p class="hint">This page is for authorized device import. If scanning does not open your client automatically, choose the matching format below.</p>
       <div class="steps">
-        <div class="step"><b>1</b><div><strong>选择客户端格式</strong><span>sing-box 使用 JSON，Clash/Mihomo 使用 YAML，其他客户端可先复制通用 URL。</span></div></div>
-        <div class="step"><b>2</b><div><strong>在客户端中导入</strong><span>打开对应链接，或复制地址到客户端的订阅/远程配置入口。</span></div></div>
-        <div class="step"><b>3</b><div><strong>回到 OMO 管理</strong><span>后续可在配置分发页轮换、禁用或删除这个入口。</span></div></div>
+        <div class="step"><b>1</b><div><strong>Choose client format</strong><span>sing-box uses JSON, Clash/Mihomo uses YAML, and mobile clients can use direct URI output.</span></div></div>
+        <div class="step"><b>2</b><div><strong>Import on the device</strong><span>Open the matching link or copy it into the client subscription entry.</span></div></div>
+        <div class="step"><b>3</b><div><strong>Manage in OMO</strong><span>Rotate, disable, or delete this distribution entry from the console later.</span></div></div>
       </div>
       <div class="links">
-        <a href="` + escapedURL + `?format=sing-box">sing-box JSON <span>打开</span></a>
-        <a href="` + escapedURL + `?format=clash">Clash/Mihomo YAML <span>打开</span></a>
-        <a class="secondary" href="` + escapedURL + `?format=uri">通用 URL / Direct URL <span>打开</span></a>
-        <button class="copy" type="button" onclick="navigator.clipboard&&navigator.clipboard.writeText('` + escapedURL + `');this.textContent='已复制 / Copied'">复制导入 URL</button>
+        <a href="` + escapedURL + `?format=sing-box">sing-box JSON <span>Open</span></a>
+        <a href="` + escapedURL + `?format=clash">Clash/Mihomo YAML <span>Open</span></a>
+        <a class="secondary" href="` + directURL + `">Direct URI <span>Open</span></a>
+        <button class="copy" type="button" onclick="navigator.clipboard&&navigator.clipboard.writeText('` + directURL + `');this.textContent='Copied'">Copy direct URI</button>
       </div>
       <code>` + escapedURL + `</code>
     </div>

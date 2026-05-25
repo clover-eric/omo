@@ -215,11 +215,11 @@ func TestServiceInstancesActivateAndDeactivateByProfile(t *testing.T) {
 		t.Fatalf("create service instance: %v", err)
 	}
 
-	active, err := appStore.ActivateServiceInstancesForProfile(ctx, "standard-secure-access", "Standard secure access", 21080, "cfg001")
+	active, err := appStore.ActivateServiceInstancesForProfile(ctx, "standard-secure-access", "Standard secure access", 21080, "cfg001", "omo", "secret", "/omo-access/standard-secure-access")
 	if err != nil {
 		t.Fatalf("activate service instances: %v", err)
 	}
-	if len(active) != 1 || active[0].ID != planned.ID || active[0].Status != "active" || active[0].ListenPort != 21080 || active[0].ConfigVersion != "cfg001" {
+	if len(active) != 1 || active[0].ID != planned.ID || active[0].Status != "active" || active[0].ListenPort != 21080 || active[0].ConfigVersion != "cfg001" || active[0].AccessPassword != "secret" || active[0].AccessPath == "" {
 		t.Fatalf("expected active instance update, got %#v", active)
 	}
 
@@ -229,6 +229,44 @@ func TestServiceInstancesActivateAndDeactivateByProfile(t *testing.T) {
 	}
 	if len(rolledBack) != 1 || rolledBack[0].Status != "planned" || rolledBack[0].ConfigVersion != "cfg002" {
 		t.Fatalf("expected planned instance after rollback, got %#v", rolledBack)
+	}
+}
+
+func TestActivateServiceInstanceKeepsOnlyOneActiveProfile(t *testing.T) {
+	ctx := context.Background()
+	appStore, err := Open(ctx, filepath.Join(t.TempDir(), "omo.db"))
+	if err != nil {
+		t.Fatalf("open store: %v", err)
+	}
+	defer appStore.Close()
+
+	if err := appStore.EnsureServiceProfile(ctx, "standard-secure-access", "2026.05.1", "Standard secure access", "sing-box tls/tcp"); err != nil {
+		t.Fatalf("ensure standard profile: %v", err)
+	}
+	if err := appStore.EnsureServiceProfile(ctx, "broad-compatibility-access", "2026.05.1", "Broad compatibility access", "sing-box tcp compatibility"); err != nil {
+		t.Fatalf("ensure compatibility profile: %v", err)
+	}
+	if _, err := appStore.ActivateServiceInstancesForProfile(ctx, "standard-secure-access", "Standard secure access", 21080, "cfg001", "omo", "secret-a", "/omo-access/standard-secure-access"); err != nil {
+		t.Fatalf("activate standard: %v", err)
+	}
+	if _, err := appStore.ActivateServiceInstancesForProfile(ctx, "broad-compatibility-access", "Broad compatibility access", 21082, "cfg002", "omo", "secret-b", "/omo-access/broad-compatibility-access"); err != nil {
+		t.Fatalf("activate compatibility: %v", err)
+	}
+	instances, err := appStore.ListServiceInstances(ctx)
+	if err != nil {
+		t.Fatalf("list instances: %v", err)
+	}
+	active := 0
+	for _, instance := range instances {
+		if instance.Status == "active" {
+			active++
+			if instance.ProfileID != "broad-compatibility-access" {
+				t.Fatalf("expected only compatibility active, got %#v", instance)
+			}
+		}
+	}
+	if active != 1 {
+		t.Fatalf("expected exactly one active instance, got %d in %#v", active, instances)
 	}
 }
 

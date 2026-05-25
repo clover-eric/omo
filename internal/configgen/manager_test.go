@@ -39,6 +39,9 @@ func TestApplyWritesConfigAndBackupsPrevious(t *testing.T) {
 	if !strings.Contains(string(current), "omo-standard-secure-access") {
 		t.Fatalf("expected rendered service profile tag, got %s", string(current))
 	}
+	if !strings.Contains(string(current), `"type": "trojan"`) || !strings.Contains(string(current), `"path": "/omo-access/standard-secure-access"`) || !strings.Contains(string(current), `"password"`) {
+		t.Fatalf("expected runnable access inbound, got %s", string(current))
+	}
 	previous, err := os.ReadFile(configPath + ".previous")
 	if err != nil {
 		t.Fatalf("read previous config: %v", err)
