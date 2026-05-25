@@ -22,6 +22,10 @@
   let latestJob = $state<BootstrapJob | null>(null);
   let events = $state<BootstrapEvent[]>([]);
   let errorMessage = $state('');
+  let displayedProgress = $state(0);
+  let redirecting = $state(false);
+  let redirectTimer: number | undefined;
+  let progressTimer: number | undefined;
 
   const copy = {
     'zh-CN': {
@@ -42,6 +46,7 @@
       retry: '重试初始化',
       liveSteps: '实时步骤',
       eventLog: '初始化日志',
+      redirecting: '入口已就绪，正在进入控制台...',
       waiting: '等待初始化事件',
       eventError: '初始化事件暂不可用，请刷新后重试。',
       requestError: '请求失败，请重试。'
@@ -64,6 +69,7 @@
       retry: 'Retry initialization',
       liveSteps: 'Live steps',
       eventLog: 'Initialization log',
+      redirecting: 'Entry is ready. Opening the console...',
       waiting: 'Waiting for initialization events',
       eventError: 'Initialization events are unavailable. Refresh and retry.',
       requestError: 'Request failed. Please retry.'
@@ -83,8 +89,17 @@
   onMount(() => {
     language = readLanguage();
     window.addEventListener('omo-language-change', handleLanguageChange);
+    progressTimer = window.setInterval(updateDisplayedProgress, 80);
     void initialize();
-    return () => window.removeEventListener('omo-language-change', handleLanguageChange);
+    return () => {
+      window.removeEventListener('omo-language-change', handleLanguageChange);
+      if (redirectTimer) {
+        window.clearTimeout(redirectTimer);
+      }
+      if (progressTimer) {
+        window.clearInterval(progressTimer);
+      }
+    };
   });
 
   function readLanguage(): Lang {
@@ -121,9 +136,18 @@
       return;
     }
     const target = `https://${nextStatus.domain}/dashboard`;
-    if (window.location.href !== target) {
-      window.location.replace(target);
+    scheduleRedirect(target, 1400);
+  }
+
+  function scheduleRedirect(target: string, delay = 1800) {
+    if (window.location.href === target || redirecting) {
+      return;
     }
+    redirecting = true;
+    displayedProgress = Math.max(displayedProgress, 96);
+    redirectTimer = window.setTimeout(() => {
+      window.location.replace(target);
+    }, delay);
   }
 
   async function startBootstrap(retry = latestJob?.status === 'failed') {
@@ -141,9 +165,7 @@
       latestJob = result.job;
       await loadStatus();
       if (result.redirectTo) {
-        window.setTimeout(() => {
-          window.location.href = result.redirectTo;
-        }, 3000);
+        scheduleRedirect(result.redirectTo, 1800);
       }
     } catch (error) {
       const message = messageFrom(error);
@@ -170,6 +192,9 @@
         progress: item.progress,
         userMessage: item.message
       };
+      if (item.status === 'succeeded' && item.progress >= 100 && domain) {
+        scheduleRedirect(`https://${domain}/dashboard`, 1800);
+      }
     });
     source.addEventListener('error', () => {
       if (events.length === 0) {
@@ -204,9 +229,20 @@
   }
 
   const text = $derived(copy[language]);
-  const currentProgress = $derived(latestJob?.progress ?? 0);
+  const targetProgress = $derived(Math.max(latestJob?.progress ?? 0, status?.phase1Complete ? 100 : 0));
+  const currentProgress = $derived(Math.round(displayedProgress));
   const complete = $derived(status?.phase1Complete || latestJob?.status === 'succeeded');
   const retrying = $derived(latestJob?.status === 'failed');
+
+  function updateDisplayedProgress() {
+    const target = targetProgress;
+    if (displayedProgress >= target) {
+      return;
+    }
+    const delta = target - displayedProgress;
+    const step = Math.max(0.8, delta * 0.08);
+    displayedProgress = Math.min(target, displayedProgress + step);
+  }
 </script>
 
 <svelte:head>
@@ -224,7 +260,13 @@
         <h1>{text.heading}</h1>
       </div>
     </div>
-    <div class="progress-ring" aria-label={text.progress}>
+    <div
+      class:complete
+      class:redirecting
+      class="progress-ring"
+      style={`--progress: ${currentProgress * 3.6}deg`}
+      aria-label={text.progress}
+    >
       <span>{currentProgress}%</span>
     </div>
   </section>
@@ -271,7 +313,11 @@
           <p class="error-text">{errorMessage}</p>
         {/if}
 
-        <button type="submit" disabled={submitting || complete}>
+        {#if redirecting}
+          <p class="success-text">{text.redirecting}</p>
+        {/if}
+
+        <button type="submit" disabled={submitting || complete || redirecting}>
           {#if submitting}
             <LoaderCircle size={18} class="spin" />
           {:else if complete}

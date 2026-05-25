@@ -27,6 +27,7 @@
 - [x] Add installer time-sync check, firewall guidance, and temporary service health verification.
 - [x] Add automatic switch from temporary initialization service to regular panel service after bootstrap.
 - [x] Redirect an already completed temporary initialization page to the HTTPS dashboard.
+- [x] Recover repeated installs that are already initialized by starting the regular panel service instead of waiting only for a new ready marker.
 - [x] Add bootstrap retry controls for failed jobs.
 - [x] Make installer reruns stop stale OMO systemd services before writing a fresh initialization port, token, and recovery link.
 - [x] Add login/logout flow using stored sessions.
@@ -110,6 +111,7 @@
 - [x] Add `/logs` frontend page for audit log review.
 - [x] Add `/settings` frontend page for backup/restore, update operations, and diagnostics provider settings.
 - [x] Add Chinese-first shared console shell with working language/theme controls across all main menu pages.
+- [x] Improve light-mode console polish and smooth initialization progress/entry transition.
 - [x] Split `/dashboard` into a real overview page and keep `/services` as the service library.
 - [x] Add update manifest URL management to the settings API.
 - [x] Add GoReleaser configuration, checksums, signatures, and SBOM generation.

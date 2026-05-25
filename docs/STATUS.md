@@ -533,6 +533,9 @@ Select-String -Path internal\**\*.go,cmd\**\*.go,web\src\**\*.ts,web\src\**\*.sv
 - 2026-05-25: Fixed completed-initialization recovery UX: `/api/bootstrap/status` now reports `initialized: true` after successful bootstrap, and the `/init` page automatically redirects to `https://{domain}/dashboard` when status already shows a completed domain entry.
 - 2026-05-25: Refreshed embedded frontend assets and Linux amd64/arm64 bootstrap archives/checksums after the completed-initialization redirect fix.
 - 2026-05-25: `go test ./internal/bootstrap ./internal/api` and `pnpm --dir web build` passed after the completed-initialization redirect fix.
+- 2026-05-25: Improved the light-mode console visual system with cleaner surfaces, navigation active states, card depth, focused inputs, and more polished button states; initialization progress now eases toward real job progress and shows a short ready transition before entering the HTTPS dashboard.
+- 2026-05-25: Hardened repeated installer recovery so `omo-init-watch.service` detects an already completed bootstrap state through the temporary service status endpoint, resets any failed regular service state, and starts `omo.service` instead of leaving Caddy with a `127.0.0.1:8080` 502.
+- 2026-05-25: `sh -n scripts/install.sh`, `pnpm --dir web test`, `pnpm --dir web build`, `go test ./...`, and `git diff --check` passed after the light-mode and installer recovery improvements.
 - `bash -n scripts/install.sh`: passed.
 - `scripts/install.sh --dry-run`: passed with sqlite/Caddy preparation, time-sync check, root-only initialization env/link files, temporary init service, init watcher, firewall guidance, and direct one-time initialization link output.
 - `/mnt/c/Program Files/Go/bin/go.exe test ./...`: passed.
