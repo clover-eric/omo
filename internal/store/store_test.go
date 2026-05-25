@@ -246,10 +246,10 @@ func TestActivateServiceInstanceKeepsOnlyOneActiveProfile(t *testing.T) {
 	if err := appStore.EnsureServiceProfile(ctx, "broad-compatibility-access", "2026.05.1", "Broad compatibility access", "sing-box tcp compatibility"); err != nil {
 		t.Fatalf("ensure compatibility profile: %v", err)
 	}
-	if _, err := appStore.ActivateServiceInstancesForProfile(ctx, "standard-secure-access", "Standard secure access", 21080, "cfg001", "omo", "secret-a", "/omo-access/standard-secure-access"); err != nil {
+	if _, err := appStore.ActivateServiceInstancesForProfile(ctx, "standard-secure-access", "Standard secure access", 21080, "20260525010101", "omo", "secret-a", "/omo-access/standard-secure-access"); err != nil {
 		t.Fatalf("activate standard: %v", err)
 	}
-	if _, err := appStore.ActivateServiceInstancesForProfile(ctx, "broad-compatibility-access", "Broad compatibility access", 21082, "cfg002", "omo", "secret-b", "/omo-access/broad-compatibility-access"); err != nil {
+	if _, err := appStore.ActivateServiceInstancesForProfile(ctx, "broad-compatibility-access", "Broad compatibility access", 21082, "20260525010102", "omo", "secret-b", "/omo-access/broad-compatibility-access"); err != nil {
 		t.Fatalf("activate compatibility: %v", err)
 	}
 	instances, err := appStore.ListServiceInstances(ctx)
@@ -267,6 +267,117 @@ func TestActivateServiceInstanceKeepsOnlyOneActiveProfile(t *testing.T) {
 	}
 	if active != 1 {
 		t.Fatalf("expected exactly one active instance, got %d in %#v", active, instances)
+	}
+}
+
+func TestMigrationKeepsOnlyLatestRunnableActiveService(t *testing.T) {
+	ctx := context.Background()
+	dbPath := filepath.Join(t.TempDir(), "omo.db")
+	appStore, err := Open(ctx, dbPath)
+	if err != nil {
+		t.Fatalf("open store: %v", err)
+	}
+	if err := appStore.EnsureServiceProfile(ctx, "standard-secure-access", "2026.05.1", "Standard secure access", "sing-box tls/tcp"); err != nil {
+		t.Fatalf("ensure standard profile: %v", err)
+	}
+	if err := appStore.EnsureServiceProfile(ctx, "mobile-optimized-access", "2026.05.1", "Mobile optimized access", "sing-box mobile resilient"); err != nil {
+		t.Fatalf("ensure mobile profile: %v", err)
+	}
+	if _, err := appStore.CreateServiceInstance(ctx, "standard-secure-access", "Standard secure access", 21080, "active", "20260525010101"); err != nil {
+		t.Fatalf("create standard active: %v", err)
+	}
+	if _, err := appStore.CreateServiceInstance(ctx, "mobile-optimized-access", "Mobile optimized access", 21084, "active", "20260525010102"); err != nil {
+		t.Fatalf("create mobile active: %v", err)
+	}
+	appStore.Close()
+
+	db, err := openSQLite(dbPath)
+	if err != nil {
+		t.Fatalf("reopen sqlite: %v", err)
+	}
+	if _, err := db.ExecContext(ctx, `DELETE FROM schema_migrations WHERE version = 'migrations/0007_single_active_service_instance.sql'`); err != nil {
+		t.Fatalf("reset migration marker: %v", err)
+	}
+	if err := db.Close(); err != nil {
+		t.Fatalf("close sqlite: %v", err)
+	}
+
+	appStore, err = Open(ctx, dbPath)
+	if err != nil {
+		t.Fatalf("reopen store: %v", err)
+	}
+	defer appStore.Close()
+	instances, err := appStore.ListServiceInstances(ctx)
+	if err != nil {
+		t.Fatalf("list instances: %v", err)
+	}
+	active := 0
+	for _, instance := range instances {
+		if instance.Status == "active" {
+			active++
+		}
+	}
+	if active != 1 {
+		t.Fatalf("expected migration to keep exactly one active instance, got %d in %#v", active, instances)
+	}
+}
+
+func TestMigrationRepairsReintroducedLegacyActiveServices(t *testing.T) {
+	ctx := context.Background()
+	dbPath := filepath.Join(t.TempDir(), "omo.db")
+	appStore, err := Open(ctx, dbPath)
+	if err != nil {
+		t.Fatalf("open store: %v", err)
+	}
+	if err := appStore.EnsureServiceProfile(ctx, "standard-secure-access", "2026.05.1", "Standard secure access", "sing-box tls/tcp"); err != nil {
+		t.Fatalf("ensure standard profile: %v", err)
+	}
+	if err := appStore.EnsureServiceProfile(ctx, "broad-compatibility-access", "2026.05.1", "Broad compatibility access", "sing-box tcp compatibility"); err != nil {
+		t.Fatalf("ensure compatibility profile: %v", err)
+	}
+	if _, err := appStore.CreateServiceInstance(ctx, "standard-secure-access", "Legacy active", 21080, "active", "2026.05.1"); err != nil {
+		t.Fatalf("create legacy active: %v", err)
+	}
+	if _, err := appStore.ActivateServiceInstancesForProfile(ctx, "standard-secure-access", "Standard secure access", 21080, "20260525010102", "omo", "secret", "/omo-access/standard-secure-access"); err != nil {
+		t.Fatalf("activate standard: %v", err)
+	}
+	if _, err := appStore.CreateServiceInstance(ctx, "broad-compatibility-access", "Unsupported active", 21082, "active", "20260525010103"); err != nil {
+		t.Fatalf("reintroduce unsupported active: %v", err)
+	}
+	appStore.Close()
+
+	db, err := openSQLite(dbPath)
+	if err != nil {
+		t.Fatalf("reopen sqlite: %v", err)
+	}
+	if _, err := db.ExecContext(ctx, `DELETE FROM schema_migrations WHERE version = 'migrations/0008_repair_active_service_distribution.sql'`); err != nil {
+		t.Fatalf("reset migration marker: %v", err)
+	}
+	if err := db.Close(); err != nil {
+		t.Fatalf("close sqlite: %v", err)
+	}
+
+	appStore, err = Open(ctx, dbPath)
+	if err != nil {
+		t.Fatalf("reopen store: %v", err)
+	}
+	defer appStore.Close()
+	instances, err := appStore.ListServiceInstances(ctx)
+	if err != nil {
+		t.Fatalf("list instances: %v", err)
+	}
+	active := 0
+	for _, instance := range instances {
+		if instance.Status != "active" {
+			continue
+		}
+		active++
+		if instance.ProfileID != "standard-secure-access" {
+			t.Fatalf("expected only supported standard active, got %#v", instance)
+		}
+	}
+	if active != 1 {
+		t.Fatalf("expected repaired migration to keep exactly one active instance, got %d in %#v", active, instances)
 	}
 }
 

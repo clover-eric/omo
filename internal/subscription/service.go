@@ -12,6 +12,7 @@ import (
 	"net"
 	"net/http"
 	"net/url"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -37,10 +38,6 @@ type Store interface {
 
 type serviceInstanceReader interface {
 	ListServiceInstances(ctx context.Context) ([]store.ServiceInstance, error)
-}
-
-type serviceInstanceAccessEnsurer interface {
-	EnsureServiceInstanceAccess(ctx context.Context, id string) (*store.ServiceInstance, error)
 }
 
 type Service struct {
@@ -286,22 +283,50 @@ func (s *Service) activeServiceInstances(ctx context.Context) ([]store.ServiceIn
 	}
 	active := make([]store.ServiceInstance, 0, len(instances))
 	for _, instance := range instances {
-		if instance.Status == "active" {
-			if strings.TrimSpace(instance.AccessPassword) == "" || strings.TrimSpace(instance.AccessPath) == "" {
-				if ensurer, ok := s.store.(serviceInstanceAccessEnsurer); ok {
-					ensured, err := ensurer.EnsureServiceInstanceAccess(ctx, instance.ID)
-					if err != nil {
-						return nil, err
-					}
-					if ensured != nil {
-						instance = *ensured
-					}
-				}
-			}
+		if distributionReady(instance) {
 			active = append(active, instance)
 		}
 	}
+	sort.SliceStable(active, func(i, j int) bool {
+		if !active[i].UpdatedAt.Equal(active[j].UpdatedAt) {
+			return active[i].UpdatedAt.After(active[j].UpdatedAt)
+		}
+		if !active[i].CreatedAt.Equal(active[j].CreatedAt) {
+			return active[i].CreatedAt.After(active[j].CreatedAt)
+		}
+		return active[i].ID > active[j].ID
+	})
+	if len(active) > 1 {
+		return active[:1], nil
+	}
 	return active, nil
+}
+
+func distributionReady(instance store.ServiceInstance) bool {
+	return instance.Status == "active" &&
+		distributionSupportedProfile(instance.ProfileID) &&
+		instance.ListenPort > 0 &&
+		strings.TrimSpace(instance.AccessUsername) != "" &&
+		strings.TrimSpace(instance.AccessPassword) != "" &&
+		strings.TrimSpace(instance.AccessPath) != "" &&
+		isAppliedConfigVersion(instance.ConfigVersion)
+}
+
+func distributionSupportedProfile(profileID string) bool {
+	return strings.TrimSpace(profileID) == "standard-secure-access"
+}
+
+func isAppliedConfigVersion(version string) bool {
+	version = strings.TrimSpace(version)
+	if len(version) != len("20060102150405") {
+		return false
+	}
+	for _, ch := range version {
+		if ch < '0' || ch > '9' {
+			return false
+		}
+	}
+	return true
 }
 
 func singBoxDescriptor(name string, publicURL string, instances []store.ServiceInstance) map[string]any {

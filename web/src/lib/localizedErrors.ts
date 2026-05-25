@@ -5,6 +5,7 @@ const zhMessages: Record<string, string> = {
   NON_JSON_RESPONSE: '接口返回格式异常，请刷新页面或检查 OMO 服务状态。',
   SERVICE_CONFIG_FAILED: '服务配置应用失败，系统已尽量保留或恢复之前的配置。请确认安装脚本已更新，并检查 OMO 服务日志。',
   SERVICE_CONFIG_WRITE_FAILED: '服务配置文件无法写入。请确认 OMO 对 /var/lib/omo 具有写入权限后重试。',
+  SERVICE_PROFILE_NOT_DISTRIBUTION_READY: '该服务方案尚未完成独立协议验证，当前不会导出到配置分发。请先使用标准安全接入。',
   SERVICE_PROFILE_NOT_FOUND: '未找到该服务模板。',
   SERVICE_ROLLBACK_UNAVAILABLE: '暂无可回滚的上一版服务配置。',
   SERVICE_CONFIG_UNAVAILABLE: '服务配置管理暂不可用。',

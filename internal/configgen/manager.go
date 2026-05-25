@@ -8,6 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"net"
 	"os"
 	"path/filepath"
 	"strings"
@@ -17,9 +18,10 @@ import (
 )
 
 var (
-	ErrInvalidProfile = errors.New("invalid service profile")
-	ErrNoRollback     = errors.New("no previous service configuration to roll back")
-	ErrConfigWrite    = errors.New("service configuration write failed")
+	ErrInvalidProfile     = errors.New("invalid service profile")
+	ErrUnsupportedProfile = errors.New("service profile is not distribution-ready")
+	ErrNoRollback         = errors.New("no previous service configuration to roll back")
+	ErrConfigWrite        = errors.New("service configuration write failed")
 )
 
 type Validator interface {
@@ -28,6 +30,10 @@ type Validator interface {
 
 type CoreReloader interface {
 	Reload(ctx context.Context, configPath string) error
+}
+
+type EntryHealthChecker interface {
+	Check(ctx context.Context, address string) error
 }
 
 type EntryRouteUpdater interface {
@@ -42,6 +48,7 @@ type Options struct {
 	Registry          *protocol.Registry
 	Validator         Validator
 	CoreReloader      CoreReloader
+	EntryHealth       EntryHealthChecker
 	EntryRouteUpdater EntryRouteUpdater
 	PanelUpstream     string
 }
@@ -52,6 +59,7 @@ type Manager struct {
 	registry   *protocol.Registry
 	validator  Validator
 	reloader   CoreReloader
+	health     EntryHealthChecker
 	entry      EntryRouteUpdater
 	upstream   string
 }
@@ -105,6 +113,7 @@ func NewManager(options Options) (*Manager, error) {
 		registry:   registry,
 		validator:  validator,
 		reloader:   options.CoreReloader,
+		health:     options.EntryHealth,
 		entry:      options.EntryRouteUpdater,
 		upstream:   strings.TrimSpace(options.PanelUpstream),
 	}, nil
@@ -117,6 +126,9 @@ func (m *Manager) Apply(ctx context.Context, profileID string) (Result, error) {
 	profile, err := m.registry.Get(strings.TrimSpace(profileID))
 	if err != nil {
 		return Result{}, fmt.Errorf("%w: %s", ErrInvalidProfile, profileID)
+	}
+	if !distributionReadyProfile(profile.ID) {
+		return Result{}, fmt.Errorf("%w: %s", ErrUnsupportedProfile, profile.ID)
 	}
 	version := time.Now().UTC().Format("20060102150405")
 	accessPassword, err := secureHex(24)
@@ -170,6 +182,15 @@ func (m *Manager) Apply(ctx context.Context, profileID string) (Result, error) {
 			return Result{}, err
 		}
 	}
+	if m.reloader != nil || m.health != nil {
+		if err := m.checkEntryHealth(ctx, listenPort(profile.ID)); err != nil {
+			_ = m.restorePrevious()
+			if m.reloader != nil {
+				_ = m.reloader.Reload(context.Background(), m.configPath)
+			}
+			return Result{}, err
+		}
+	}
 
 	return Result{
 		ProfileID:          profile.ID,
@@ -187,6 +208,39 @@ func (m *Manager) Apply(ctx context.Context, profileID string) (Result, error) {
 	}, nil
 }
 
+func (m *Manager) checkEntryHealth(ctx context.Context, port int) error {
+	checker := m.health
+	if checker == nil {
+		checker = TCPHealthChecker{}
+	}
+	return checker.Check(ctx, fmt.Sprintf("127.0.0.1:%d", port))
+}
+
+type TCPHealthChecker struct{}
+
+func (TCPHealthChecker) Check(ctx context.Context, address string) error {
+	var lastErr error
+	deadline := time.Now().Add(3 * time.Second)
+	for {
+		dialCtx, cancel := context.WithTimeout(ctx, 500*time.Millisecond)
+		conn, err := (&net.Dialer{}).DialContext(dialCtx, "tcp", address)
+		cancel()
+		if err == nil {
+			_ = conn.Close()
+			return nil
+		}
+		lastErr = err
+		if time.Now().After(deadline) {
+			return fmt.Errorf("access entry health check failed for %s: %w", address, lastErr)
+		}
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		case <-time.After(150 * time.Millisecond):
+		}
+	}
+}
+
 func (m *Manager) Rollback(ctx context.Context, profileID string) (Result, error) {
 	if m == nil {
 		return Result{}, errors.New("config manager is nil")
@@ -194,6 +248,9 @@ func (m *Manager) Rollback(ctx context.Context, profileID string) (Result, error
 	profile, err := m.registry.Get(strings.TrimSpace(profileID))
 	if err != nil {
 		return Result{}, fmt.Errorf("%w: %s", ErrInvalidProfile, profileID)
+	}
+	if !distributionReadyProfile(profile.ID) {
+		return Result{}, fmt.Errorf("%w: %s", ErrUnsupportedProfile, profile.ID)
 	}
 	previous := m.previousPath()
 	if _, err := os.Stat(previous); err != nil {
@@ -351,6 +408,10 @@ func accessPath(profileID string) string {
 		clean = "default"
 	}
 	return "/omo-access/" + clean
+}
+
+func distributionReadyProfile(profileID string) bool {
+	return strings.TrimSpace(profileID) == "standard-secure-access"
 }
 
 func secureHex(size int) (string, error) {

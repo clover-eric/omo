@@ -29,6 +29,7 @@ type ServiceInstanceStore interface {
 	EnsureServiceProfile(ctx context.Context, profileID string, version string, displayName string, expertProtocol string) error
 	ActivateServiceInstancesForProfile(ctx context.Context, profileID string, displayName string, listenPort int, configVersion string, accessUsername string, accessPassword string, accessPath string) ([]store.ServiceInstance, error)
 	DeactivateServiceInstancesForProfile(ctx context.Context, profileID string, configVersion string) ([]store.ServiceInstance, error)
+	ListServiceInstances(ctx context.Context) ([]store.ServiceInstance, error)
 }
 
 type Service struct {
@@ -140,7 +141,10 @@ func (s *Service) activateInstances(ctx context.Context, result Result) ([]store
 	if err := instanceStore.EnsureServiceProfile(ctx, result.ProfileID, result.ProfileVersion, result.ProfileDisplayName, result.ExpertProtocol); err != nil {
 		return nil, err
 	}
-	return instanceStore.ActivateServiceInstancesForProfile(ctx, result.ProfileID, result.ProfileDisplayName, result.ListenPort, result.ConfigVersion, result.AccessUsername, result.AccessPassword, result.AccessPath)
+	if _, err := instanceStore.ActivateServiceInstancesForProfile(ctx, result.ProfileID, result.ProfileDisplayName, result.ListenPort, result.ConfigVersion, result.AccessUsername, result.AccessPassword, result.AccessPath); err != nil {
+		return nil, err
+	}
+	return instanceStore.ListServiceInstances(ctx)
 }
 
 func (s *Service) deactivateInstances(ctx context.Context, result Result) ([]store.ServiceInstance, error) {
@@ -151,5 +155,8 @@ func (s *Service) deactivateInstances(ctx context.Context, result Result) ([]sto
 	if err := instanceStore.EnsureServiceProfile(ctx, result.ProfileID, result.ProfileVersion, result.ProfileDisplayName, result.ExpertProtocol); err != nil {
 		return nil, err
 	}
-	return instanceStore.DeactivateServiceInstancesForProfile(ctx, result.ProfileID, result.ConfigVersion)
+	if _, err := instanceStore.DeactivateServiceInstancesForProfile(ctx, result.ProfileID, result.ConfigVersion); err != nil {
+		return nil, err
+	}
+	return instanceStore.ListServiceInstances(ctx)
 }

@@ -227,6 +227,14 @@ func TestServiceInstanceEndpointsValidateInput(t *testing.T) {
 	if invalidRec.Code != http.StatusBadRequest || !strings.Contains(invalidRec.Body.String(), `"code":"INVALID_SERVICE_INPUT"`) {
 		t.Fatalf("expected invalid status rejection, got %d: %s", invalidRec.Code, invalidRec.Body.String())
 	}
+
+	activeReq := httptest.NewRequest(http.MethodPost, "/api/services", strings.NewReader(`{"profileId":"standard-secure-access","status":"active"}`))
+	addCSRF(activeReq)
+	activeRec := httptest.NewRecorder()
+	router.ServeHTTP(activeRec, activeReq)
+	if activeRec.Code != http.StatusBadRequest || !strings.Contains(activeRec.Body.String(), `"code":"INVALID_SERVICE_INPUT"`) {
+		t.Fatalf("expected direct active status rejection, got %d: %s", activeRec.Code, activeRec.Body.String())
+	}
 }
 
 func TestServiceConfigApplyAndRollbackEndpoints(t *testing.T) {
@@ -302,6 +310,19 @@ func TestServiceConfigApplyReportsWriteFailure(t *testing.T) {
 
 	if rec.Code != http.StatusInternalServerError || !strings.Contains(rec.Body.String(), "SERVICE_CONFIG_WRITE_FAILED") {
 		t.Fatalf("expected write failure response, got %d: %s", rec.Code, rec.Body.String())
+	}
+}
+
+func TestServiceConfigApplyRejectsProfileThatIsNotDistributionReady(t *testing.T) {
+	router := testRouterWithConfigGen(t)
+
+	req := httptest.NewRequest(http.MethodPost, "/api/services/mobile-optimized-access/apply", nil)
+	addCSRF(req)
+	rec := httptest.NewRecorder()
+	router.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusConflict || !strings.Contains(rec.Body.String(), "SERVICE_PROFILE_NOT_DISTRIBUTION_READY") {
+		t.Fatalf("expected unsupported profile response, got %d: %s", rec.Code, rec.Body.String())
 	}
 }
 

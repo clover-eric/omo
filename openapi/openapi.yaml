@@ -1293,9 +1293,9 @@ components:
           description: Zero means OMO can allocate or reuse the backend-managed entry during apply.
         status:
           type: string
+          description: Management create requests may prepare planned or disabled records only; active state is produced by the backend apply endpoint.
           enum:
             - planned
-            - active
             - disabled
     ServiceUpdateRequest:
       type: object
@@ -1310,9 +1310,9 @@ components:
           maximum: 65535
         status:
           type: string
+          description: Management update requests may prepare planned or disabled records only; active state is produced by the backend apply endpoint.
           enum:
             - planned
-            - active
             - disabled
         configVersion:
           type: string

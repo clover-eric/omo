@@ -716,21 +716,65 @@ func (s *Store) ActivateServiceInstancesForProfile(ctx context.Context, profileI
 	if !strings.HasPrefix(accessPath, "/") {
 		accessPath = "/" + accessPath
 	}
-	if _, err := s.db.ExecContext(
+	tx, err := s.db.BeginTx(ctx, nil)
+	if err != nil {
+		return nil, err
+	}
+	defer func() { _ = tx.Rollback() }()
+
+	if _, err := tx.ExecContext(
 		ctx,
 		`UPDATE service_instances
 		 SET status = 'planned', updated_at = ?
-		 WHERE profile_id <> ? AND status = 'active'`,
+		 WHERE status = 'active'`,
 		nowString(),
-		profileID,
 	); err != nil {
 		return nil, err
 	}
-	result, err := s.db.ExecContext(
+
+	var targetID string
+	err = tx.QueryRowContext(
+		ctx,
+		`SELECT id
+		 FROM service_instances
+		 WHERE profile_id = ? AND status IN ('planned', 'active')
+		 ORDER BY CASE WHEN status = 'active' THEN 0 ELSE 1 END, updated_at DESC, created_at DESC
+		 LIMIT 1`,
+		profileID,
+	).Scan(&targetID)
+	if errors.Is(err, sql.ErrNoRows) {
+		targetID = ""
+		err = nil
+	}
+	if err != nil {
+		return nil, err
+	}
+
+	if targetID == "" {
+		now := nowString()
+		targetID = randomID("svc")
+		if _, err := tx.ExecContext(
+			ctx,
+			`INSERT INTO service_instances (id, profile_id, display_name, listen_port, access_username, access_password, access_path, status, config_version, created_at, updated_at)
+			 VALUES (?, ?, ?, ?, ?, ?, ?, 'active', ?, ?, ?)`,
+			targetID,
+			profileID,
+			displayName,
+			listenPort,
+			accessUsername,
+			accessPassword,
+			accessPath,
+			configVersion,
+			now,
+			now,
+		); err != nil {
+			return nil, err
+		}
+	} else if _, err := tx.ExecContext(
 		ctx,
 		`UPDATE service_instances
-		 SET status = 'active', display_name = CASE WHEN display_name = '' THEN ? ELSE display_name END, listen_port = ?, access_username = ?, access_password = ?, access_path = ?, config_version = ?, updated_at = ?
-		 WHERE profile_id = ? AND status IN ('planned', 'active')`,
+		 SET status = 'active', display_name = ?, listen_port = ?, access_username = ?, access_password = ?, access_path = ?, config_version = ?, updated_at = ?
+		 WHERE id = ?`,
 		displayName,
 		listenPort,
 		accessUsername,
@@ -738,33 +782,24 @@ func (s *Store) ActivateServiceInstancesForProfile(ctx context.Context, profileI
 		accessPath,
 		configVersion,
 		nowString(),
-		profileID,
-	)
-	if err != nil {
+		targetID,
+	); err != nil {
 		return nil, err
 	}
-	affected, err := result.RowsAffected()
-	if err != nil {
+
+	if _, err := tx.ExecContext(
+		ctx,
+		`UPDATE service_instances
+		 SET status = 'planned', updated_at = ?
+		 WHERE id <> ? AND status = 'active'`,
+		nowString(),
+		targetID,
+	); err != nil {
 		return nil, err
 	}
-	if affected == 0 {
-		created, err := s.CreateServiceInstance(ctx, profileID, displayName, listenPort, "active", configVersion)
-		if err != nil {
-			return nil, err
-		}
-		if _, err := s.db.ExecContext(
-			ctx,
-			`UPDATE service_instances
-			 SET access_username = ?, access_password = ?, access_path = ?, updated_at = ?
-			 WHERE id = ?`,
-			accessUsername,
-			accessPassword,
-			accessPath,
-			nowString(),
-			created.ID,
-		); err != nil {
-			return nil, err
-		}
+
+	if err := tx.Commit(); err != nil {
+		return nil, err
 	}
 	return s.ServiceInstancesByProfile(ctx, profileID)
 }

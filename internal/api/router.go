@@ -199,7 +199,7 @@ func NewRouter(cfg Config) http.Handler {
 		if status == "" {
 			status = "planned"
 		}
-		if !validServiceStatus(status) || req.ListenPort < 0 || req.ListenPort > 65535 {
+		if !validMutableServiceStatus(status) || req.ListenPort < 0 || req.ListenPort > 65535 {
 			respondError(w, r, http.StatusBadRequest, "INVALID_SERVICE_INPUT", "Service input is invalid.", nil)
 			return
 		}
@@ -240,7 +240,7 @@ func NewRouter(cfg Config) http.Handler {
 				return
 			}
 		}
-		if req.Status != nil && !validServiceStatus(strings.TrimSpace(*req.Status)) {
+		if req.Status != nil && !validMutableServiceStatus(strings.TrimSpace(*req.Status)) {
 			respondError(w, r, http.StatusBadRequest, "INVALID_SERVICE_INPUT", "Service input is invalid.", nil)
 			return
 		}
@@ -1029,6 +1029,15 @@ func validServiceStatus(status string) bool {
 	}
 }
 
+func validMutableServiceStatus(status string) bool {
+	switch status {
+	case "planned", "disabled":
+		return true
+	default:
+		return false
+	}
+}
+
 func respondJSON(w http.ResponseWriter, status int, body Envelope) {
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 	w.WriteHeader(status)
@@ -1163,6 +1172,8 @@ func writeServiceConfigError(w http.ResponseWriter, r *http.Request, err error) 
 	switch {
 	case errors.Is(err, configgen.ErrInvalidProfile):
 		respondError(w, r, http.StatusNotFound, "SERVICE_PROFILE_NOT_FOUND", "Service profile was not found.", nil)
+	case errors.Is(err, configgen.ErrUnsupportedProfile):
+		respondError(w, r, http.StatusConflict, "SERVICE_PROFILE_NOT_DISTRIBUTION_READY", "This service profile is not distribution-ready yet. Apply the standard secure access profile for the current public import workflow.", nil)
 	case errors.Is(err, configgen.ErrNoRollback):
 		respondError(w, r, http.StatusConflict, "SERVICE_ROLLBACK_UNAVAILABLE", "No previous service configuration is available for rollback.", nil)
 	case errors.Is(err, configgen.ErrConfigWrite):

@@ -80,6 +80,8 @@
     configVersion: string;
     plan: string;
     apply: string;
+    switchApply: string;
+    reapply: string;
     rollback: string;
     openDistribution: string;
     nextPlan: string;
@@ -96,6 +98,9 @@
     tls: string;
     udp: string;
     recommended: string;
+    availableProfile: string;
+    pendingProfile: string;
+    pendingProfileNote: string;
   };
 
   const copy: Record<Language, Copy> = {
@@ -147,6 +152,8 @@
       configVersion: '配置版本',
       plan: '规划实例',
       apply: '应用配置',
+      switchApply: '切换并应用',
+      reapply: '重新应用',
       rollback: '回滚配置',
       openDistribution: '前往配置分发',
       nextPlan: '先规划实例',
@@ -162,7 +169,10 @@
       noDomain: '无需域名',
       tls: '证书',
       udp: 'UDP',
-      recommended: '推荐'
+      recommended: '推荐',
+      availableProfile: '当前可用',
+      pendingProfile: '待验证',
+      pendingProfileNote: '该方案的独立协议编译器尚未完成，当前不会导出到配置分发。'
     },
     'en-US': {
       title: 'Service Library',
@@ -212,6 +222,8 @@
       configVersion: 'Config version',
       plan: 'Plan instance',
       apply: 'Apply config',
+      switchApply: 'Switch and apply',
+      reapply: 'Reapply',
       rollback: 'Rollback config',
       openDistribution: 'Open distribution',
       nextPlan: 'Plan an instance first',
@@ -227,7 +239,10 @@
       noDomain: 'No domain required',
       tls: 'TLS',
       udp: 'UDP',
-      recommended: 'Recommended'
+      recommended: 'Recommended',
+      availableProfile: 'Available now',
+      pendingProfile: 'Pending validation',
+      pendingProfileNote: 'This plan does not have an independent compiler yet and is not exported to distribution.'
     }
   };
 
@@ -333,6 +348,7 @@
   );
   let coreReady = $derived(Boolean(coreStatus?.installed && coreStatus?.healthy));
   let activeServiceCount = $derived(services.filter((service) => service.status === 'active').length);
+  let activeProfileId = $derived(services.find((service) => service.status === 'active')?.profileId ?? '');
   let metrics = $derived([
     { label: t.accessCore, value: coreReady ? t.ready : t.needsAttention, note: coreStatus?.message ?? t.loadingCore, icon: Server },
     { label: t.profileTemplates, value: profiles.length.toString(), note: t.backendCatalog, icon: Boxes },
@@ -387,6 +403,30 @@
     }
   }
 
+  async function ensurePlannedProfile(profile: ServiceProfile) {
+    const existing = primaryInstance(profile);
+    if (existing && existing.status !== 'active') {
+      return;
+    }
+    busyProfile = `${profile.id}:plan`;
+    error = '';
+    try {
+      const result = await apiPost<ServiceResult>('/api/services', {
+        profileId: profile.id,
+        displayName: profileName(profile),
+        listenPort: 0,
+        status: 'planned'
+      });
+      services = [result.service, ...services];
+      selectedProfileId = profile.id;
+    } catch (err) {
+      error = localizedErrorMessage(err, $preferences.language, t.createError);
+      throw err;
+    } finally {
+      busyProfile = '';
+    }
+  }
+
   async function runConfigAction(profile: ServiceProfile, action: 'apply' | 'rollback') {
     busyProfile = `${profile.id}:${action}`;
     error = '';
@@ -405,12 +445,17 @@
 
   async function runNextAction(profile: ServiceProfile) {
     const state = profileState(profile);
-    if (state === 'not-planned') {
-      await planProfile(profile);
+    if (state === 'active') {
+      await runConfigAction(profile, 'apply');
       return;
     }
-    if (state === 'planned') {
+    try {
+      if (state === 'not-planned') {
+        await ensurePlannedProfile(profile);
+      }
       await runConfigAction(profile, 'apply');
+    } catch {
+      // The called action already surfaced a localized operator error.
     }
   }
 
@@ -453,12 +498,24 @@
 
   function primaryInstance(profile: ServiceProfile) {
     const related = profileInstances(profile);
-    return related.find((service) => service.status === 'active') ?? related.find((service) => service.status === 'planned') ?? related[0] ?? null;
+    if (activeProfileId === profile.id) {
+      return related.find((service) => service.status === 'active') ?? related.find((service) => service.status === 'planned') ?? related[0] ?? null;
+    }
+    return related.find((service) => service.status === 'planned') ?? related.find((service) => service.status === 'disabled') ?? related[0] ?? null;
   }
 
   function profileState(profile: ServiceProfile) {
+    if (!profileSupported(profile)) {
+      return 'unsupported';
+    }
+    if (activeProfileId === profile.id) {
+      return 'active';
+    }
     const instance = primaryInstance(profile);
     if (!instance) {
+      return 'not-planned';
+    }
+    if (instance.status === 'active') {
       return 'not-planned';
     }
     return instance.status;
@@ -475,11 +532,17 @@
     if (state === 'disabled') {
       return t.disabled;
     }
+    if (state === 'unsupported') {
+      return t.pendingProfile;
+    }
     return t.notPlanned;
   }
 
   function nextText(profile: ServiceProfile) {
     const state = profileState(profile);
+    if (state === 'unsupported') {
+      return t.pendingProfileNote;
+    }
     if (state === 'active') {
       return t.nextDistribute;
     }
@@ -491,10 +554,16 @@
 
   function nextButtonText(profile: ServiceProfile) {
     const state = profileState(profile);
-    if (state === 'planned') {
-      return t.apply;
+    if (state === 'unsupported') {
+      return t.pendingProfile;
     }
-    return t.plan;
+    if (state === 'active') {
+      return t.reapply;
+    }
+    if (state === 'planned') {
+      return t.switchApply;
+    }
+    return t.apply;
   }
 
   function statusText(status: ServiceInstance['status']) {
@@ -510,6 +579,10 @@
       parts.push(t.udp);
     }
     return parts.join(' + ');
+  }
+
+  function profileSupported(profile: ServiceProfile) {
+    return profile.id === 'standard-secure-access';
   }
 </script>
 
@@ -613,6 +686,8 @@
                       <h3>{profileName(profile)}</h3>
                       {#if index === 0}
                         <span>{t.recommended}</span>
+                      {:else}
+                        <span>{t.pendingProfile}</span>
                       {/if}
                     </div>
                     <p>{profileSummary(profile)}</p>
@@ -623,30 +698,23 @@
                     </div>
                   </div>
                 </button>
-                {#if profileState(profile) === 'active'}
-                  <a class="primary-action plan-distribution-action" href="/subscriptions">
-                    <ClipboardList size={16} />
-                    {t.openDistribution}
-                  </a>
-                {:else}
-                  <button
-                    type="button"
-                    disabled={busyProfile !== ''}
-                    onclick={(event) => {
-                      event.stopPropagation();
-                      void runNextAction(profile);
-                    }}
-                  >
-                    {#if busyProfile.startsWith(`${profile.id}:`)}
-                      <LoaderCircle size={16} class="spin" />
-                    {:else if profileState(profile) === 'planned'}
-                      <ShieldCheck size={16} />
-                    {:else}
-                      <Boxes size={16} />
-                    {/if}
-                    {nextButtonText(profile)}
-                  </button>
-                {/if}
+                <button
+                  type="button"
+                  disabled={busyProfile !== '' || !profileSupported(profile)}
+                  onclick={(event) => {
+                    event.stopPropagation();
+                    void runNextAction(profile);
+                  }}
+                >
+                  {#if busyProfile.startsWith(`${profile.id}:`)}
+                    <LoaderCircle size={16} class="spin" />
+                  {:else if profileState(profile) === 'not-planned'}
+                    <Boxes size={16} />
+                  {:else}
+                    <ShieldCheck size={16} />
+                  {/if}
+                  {nextButtonText(profile)}
+                </button>
               </article>
             {/each}
           </div>
@@ -738,22 +806,35 @@
               {#if profileState(selectedProfile) === 'not-planned'}
                 <button
                   type="button"
-                  onclick={() => planProfile(selectedProfile)}
+                  onclick={() => runNextAction(selectedProfile)}
                   disabled={busyProfile !== ''}
                 >
-                  <Boxes size={16} />
-                  {t.plan}
+                  <ShieldCheck size={16} />
+                  {t.apply}
+                </button>
+              {:else if profileState(selectedProfile) === 'unsupported'}
+                <button type="button" disabled>
+                  <ShieldCheck size={16} />
+                  {t.pendingProfile}
                 </button>
               {:else if profileState(selectedProfile) === 'planned'}
+                <button
+                  type="button"
+                  onclick={() => runNextAction(selectedProfile)}
+                  disabled={busyProfile !== ''}
+                >
+                  <ShieldCheck size={16} />
+                  {t.switchApply}
+                </button>
+              {:else}
                 <button
                   type="button"
                   onclick={() => runConfigAction(selectedProfile, 'apply')}
                   disabled={busyProfile !== ''}
                 >
                   <ShieldCheck size={16} />
-                  {t.apply}
+                  {t.reapply}
                 </button>
-              {:else}
                 <a class="primary-action" href="/subscriptions">
                   <ClipboardList size={16} />
                   {t.openDistribution}

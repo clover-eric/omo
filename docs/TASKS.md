@@ -63,6 +63,7 @@
 - [x] Implement config apply and rollback.
 - [x] Synchronize service instance state through config apply and rollback jobs.
 - [x] Start/reload the managed sing-box entry after successful config apply and keep service credentials synchronized with subscription output.
+- [x] Enforce a single currently applied runnable service instance so historical planned profiles are not exported as active client entries.
 - [x] Implement dashboard service cards.
 - [x] Add `/services` frontend route for the service library.
 - [x] Rework `/services` into a guided access-plan workflow with profile selection, instance status, backend apply state, and expert details separated from the ordinary operator path.
@@ -79,6 +80,9 @@
 - [x] Add subscription status update and deletion APIs, with frontend management for select, rotate-and-reveal, enable/disable, delete, and one-time token visibility.
 - [x] Generate subscription and QR URLs from the public HTTPS panel domain or trusted loopback reverse-proxy headers instead of loopback service addresses.
 - [x] Generate concrete sing-box, Clash/Mihomo, and direct URI client entries from active backend-owned service credentials instead of placeholder metadata.
+- [x] Publish only the current runnable active service instance in subscription output, even when legacy databases contain multiple historical active rows.
+- [x] Repair databases where old builds reintroduced multiple active rows after the first single-active migration, and refuse to publish legacy active records that were not produced by a successful backend apply.
+- [x] Mark unimplemented service profiles as pending validation and block them from apply/distribution until each has its own validated compiler and client-format tests.
 - [x] Replace fragile hand-written QR generation with standard QR encoding and make scanned codes land on a clear mobile import selection page.
 - [x] Clarify the Service Library to Configuration Distribution workflow so operators can see the path from active service instance to device import.
 
