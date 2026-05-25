@@ -28,9 +28,133 @@
     type PairingCodeResult
   } from '$lib/api';
 
+  type Copy = {
+    title: string;
+    phase: string;
+    refresh: string;
+    sample: string;
+    failed: string;
+    summaryLabel: string;
+    trustedNodes: string;
+    totalRecords: string;
+    oneHopLinks: string;
+    appliedRecords: string;
+    online: string;
+    latestSamples: string;
+    exitNode: string;
+    createPairingCode: string;
+    nodeName: string;
+    domain: string;
+    ttlMinutes: string;
+    createCode: string;
+    oneTimePairingCode: string;
+    copied: string;
+    copyCode: string;
+    entryNode: string;
+    acceptPairing: string;
+    exitDomain: string;
+    pairingCode: string;
+    configurationPlan: string;
+    oneHopPreview: string;
+    trustRecords: string;
+    knownNodes: string;
+    loadingNodes: string;
+    emptyNodes: string;
+    noLinkRecord: string;
+    offline: string;
+    plan: string;
+    apply: string;
+    trust: string;
+    disable: string;
+    delete: string;
+  };
+
+  const copy: Record<Language, Copy> = {
+    'zh-CN': {
+      title: '级联节点',
+      phase: '第六阶段',
+      refresh: '刷新级联节点',
+      sample: '采样级联健康',
+      failed: '级联操作失败。',
+      summaryLabel: '级联概览',
+      trustedNodes: '可信节点',
+      totalRecords: '条级联记录',
+      oneHopLinks: '一跳链路',
+      appliedRecords: '条已应用配置记录',
+      online: '在线',
+      latestSamples: '条最新健康样本',
+      exitNode: '出口节点',
+      createPairingCode: '创建配对码',
+      nodeName: '节点名称',
+      domain: '域名',
+      ttlMinutes: '有效分钟数',
+      createCode: '创建配对码',
+      oneTimePairingCode: '一次性配对码',
+      copied: '已复制',
+      copyCode: '复制配对码',
+      entryNode: '入口节点',
+      acceptPairing: '接受配对',
+      exitDomain: '出口域名',
+      pairingCode: '配对码',
+      configurationPlan: '配置计划',
+      oneHopPreview: '一跳级联预览',
+      trustRecords: '信任记录',
+      knownNodes: '已知级联节点',
+      loadingNodes: '正在加载级联节点...',
+      emptyNodes: '尚未配对级联节点。',
+      noLinkRecord: '无链路记录',
+      offline: '离线',
+      plan: '规划',
+      apply: '应用',
+      trust: '信任',
+      disable: '停用',
+      delete: '删除'
+    },
+    'en-US': {
+      title: 'Cascade Nodes',
+      phase: 'Phase 6',
+      refresh: 'Refresh cascade nodes',
+      sample: 'Sample cascade health',
+      failed: 'Cascade operation failed.',
+      summaryLabel: 'Cascade summary',
+      trustedNodes: 'Trusted nodes',
+      totalRecords: 'total cascade records',
+      oneHopLinks: 'One-hop links',
+      appliedRecords: 'applied configuration records',
+      online: 'Online',
+      latestSamples: 'latest health samples',
+      exitNode: 'Exit Node',
+      createPairingCode: 'Create Pairing Code',
+      nodeName: 'Node name',
+      domain: 'Domain',
+      ttlMinutes: 'TTL minutes',
+      createCode: 'Create Code',
+      oneTimePairingCode: 'One-time pairing code',
+      copied: 'Copied',
+      copyCode: 'Copy Code',
+      entryNode: 'Entry Node',
+      acceptPairing: 'Accept Pairing',
+      exitDomain: 'Exit domain',
+      pairingCode: 'Pairing code',
+      configurationPlan: 'Configuration Plan',
+      oneHopPreview: 'One-Hop Cascade Preview',
+      trustRecords: 'Trust Records',
+      knownNodes: 'Known Cascade Nodes',
+      loadingNodes: 'Loading cascade nodes...',
+      emptyNodes: 'No cascade nodes have been paired yet.',
+      noLinkRecord: 'no link record',
+      offline: 'offline',
+      plan: 'Plan',
+      apply: 'Apply',
+      trust: 'Trust',
+      disable: 'Disable',
+      delete: 'Delete'
+    }
+  };
+
   let nodes = $state<CascadeNode[]>([]);
   let pairs = $state<CascadePair[]>([]);
-  let nodeName = $state('Exit cascade node');
+  let nodeName = $state('出口级联节点');
   let domain = $state('');
   let ttlMinutes = $state(15);
   let exitDomain = $state('');
@@ -48,23 +172,7 @@
   let latestApply = $state<CascadeConfigApplyResult | null>(null);
   let latestSamples = $state<CascadeHealthSample[]>([]);
   let healthMessage = $state('');
-  let t = $derived(
-    $preferences.language === 'zh-CN'
-      ? {
-          title: '级联节点',
-          phase: '第六阶段',
-          refresh: '刷新级联节点',
-          sample: '采样级联健康',
-          failed: '级联操作失败。'
-        }
-      : {
-          title: 'Cascade Nodes',
-          phase: 'Phase 6',
-          refresh: 'Refresh cascade nodes',
-          sample: 'Sample cascade health',
-          failed: 'Cascade operation failed.'
-        }
-  );
+  let t = $derived(copy[$preferences.language]);
 
   onMount(() => {
     void loadCascade();
@@ -75,8 +183,8 @@
     errorMessage = '';
     try {
       const result = await apiGet<CascadeNodeList>('/api/cascade/nodes');
-      nodes = result.nodes;
-      pairs = result.pairs;
+      nodes = result.nodes ?? [];
+      pairs = result.pairs ?? [];
     } catch (error) {
       errorMessage = messageFrom(error);
     } finally {
@@ -183,9 +291,9 @@
     healthMessage = '';
     try {
       const result = await apiPost<CascadeHealthSampleResult>('/api/cascade/health/sample', {});
-      nodes = result.nodes;
-      pairs = result.pairs;
-      latestSamples = result.samples;
+      nodes = result.nodes ?? [];
+      pairs = result.pairs ?? [];
+      latestSamples = result.samples ?? [];
       healthMessage = result.job.userMessage;
     } catch (error) {
       errorMessage = messageFrom(error);
@@ -212,6 +320,20 @@
   function messageFrom(error: unknown) {
     return error instanceof Error ? error.message : t.failed;
   }
+
+  function statusText(value: string) {
+    if ($preferences.language !== 'zh-CN') {
+      return value;
+    }
+    if (value === 'trusted') return '可信';
+    if (value === 'disabled') return '已停用';
+    if (value === 'pending') return '待确认';
+    if (value === 'applied') return '已应用';
+    if (value === 'planned') return '已规划';
+    if (value === 'pending_apply') return '待应用';
+    if (value === 'active') return '运行中';
+    return value;
+  }
 </script>
 
 <svelte:head>
@@ -236,29 +358,29 @@
       <p class="error-text">{errorMessage}</p>
     {/if}
 
-    <section class="summary-grid" aria-label="Cascade summary">
+    <section class="summary-grid" aria-label={t.summaryLabel}>
       <article class="metric-card">
         <div class="metric-icon"><Network size={20} /></div>
         <div>
-          <p>Trusted nodes</p>
+          <p>{t.trustedNodes}</p>
           <strong>{nodes.filter((node) => node.status === 'trusted').length}</strong>
-          <span>{nodes.length} total cascade records</span>
+          <span>{nodes.length} {t.totalRecords}</span>
         </div>
       </article>
       <article class="metric-card">
         <div class="metric-icon"><Link2 size={20} /></div>
         <div>
-          <p>One-hop links</p>
+          <p>{t.oneHopLinks}</p>
           <strong>{pairs.length}</strong>
-          <span>{pairs.filter((pair) => pair.configState === 'applied').length} applied configuration records</span>
+          <span>{pairs.filter((pair) => pair.configState === 'applied').length} {t.appliedRecords}</span>
         </div>
       </article>
       <article class="metric-card">
         <div class="metric-icon"><CheckCircle2 size={20} /></div>
         <div>
-          <p>Online</p>
+          <p>{t.online}</p>
           <strong>{nodes.filter((node) => node.online).length}</strong>
-          <span>{latestSamples.length} latest health samples</span>
+          <span>{latestSamples.length} {t.latestSamples}</span>
         </div>
       </article>
     </section>
@@ -271,22 +393,22 @@
       <form class="panel cascade-form" onsubmit={(event) => { event.preventDefault(); createCode(); }}>
         <div class="panel-heading">
           <div>
-            <p class="eyebrow">Exit Node</p>
-            <h2>Create Pairing Code</h2>
+            <p class="eyebrow">{t.exitNode}</p>
+            <h2>{t.createPairingCode}</h2>
           </div>
           <Network size={20} />
         </div>
 
         <label>
-          <span>Node name</span>
+          <span>{t.nodeName}</span>
           <input bind:value={nodeName} maxlength="80" required />
         </label>
         <label>
-          <span>Domain</span>
+          <span>{t.domain}</span>
           <input bind:value={domain} placeholder="exit.example.com" required />
         </label>
         <label>
-          <span>TTL minutes</span>
+          <span>{t.ttlMinutes}</span>
           <input bind:value={ttlMinutes} min="5" max="60" type="number" />
         </label>
 
@@ -296,16 +418,16 @@
           {:else}
             <Network size={17} />
           {/if}
-          Create Code
+          {t.createCode}
         </button>
 
         {#if latestCode}
           <div class="secret-box cascade-code">
-            <span>One-time pairing code</span>
+            <span>{t.oneTimePairingCode}</span>
             <code>{latestCode.code}</code>
             <button type="button" onclick={copyCode}>
               <ClipboardCopy size={16} />
-              {copied ? 'Copied' : 'Copy Code'}
+              {copied ? t.copied : t.copyCode}
             </button>
           </div>
         {/if}
@@ -314,18 +436,18 @@
       <form class="panel cascade-form" onsubmit={(event) => { event.preventDefault(); acceptCode(); }}>
         <div class="panel-heading">
           <div>
-            <p class="eyebrow">Entry Node</p>
-            <h2>Accept Pairing</h2>
+            <p class="eyebrow">{t.entryNode}</p>
+            <h2>{t.acceptPairing}</h2>
           </div>
           <Link2 size={20} />
         </div>
 
         <label>
-          <span>Exit domain</span>
+          <span>{t.exitDomain}</span>
           <input bind:value={exitDomain} placeholder="exit.example.com" required />
         </label>
         <label>
-          <span>Pairing code</span>
+          <span>{t.pairingCode}</span>
           <textarea bind:value={pairingCode} rows="6" required></textarea>
         </label>
 
@@ -335,7 +457,7 @@
           {:else}
             <Link2 size={17} />
           {/if}
-          Accept Pairing
+          {t.acceptPairing}
         </button>
       </form>
     </section>
@@ -344,8 +466,8 @@
       <section class="service-section">
         <div class="panel-heading">
           <div>
-            <p class="eyebrow">Configuration Plan</p>
-            <h2>One-Hop Cascade Preview</h2>
+            <p class="eyebrow">{t.configurationPlan}</p>
+            <h2>{t.oneHopPreview}</h2>
           </div>
           <ClipboardList size={20} />
         </div>
@@ -365,18 +487,18 @@
     <section class="service-section">
       <div class="panel-heading">
         <div>
-          <p class="eyebrow">Trust Records</p>
-          <h2>Known Cascade Nodes</h2>
+          <p class="eyebrow">{t.trustRecords}</p>
+          <h2>{t.knownNodes}</h2>
         </div>
       </div>
 
       {#if loading}
         <div class="loading-row">
           <LoaderCircle size={18} class="spin" />
-          <span>Loading cascade nodes...</span>
+          <span>{t.loadingNodes}</span>
         </div>
       {:else if nodes.length === 0}
-        <p class="empty-text">No cascade nodes have been paired yet.</p>
+        <p class="empty-text">{t.emptyNodes}</p>
       {:else}
         <div class="subscription-list">
           {#each nodes as node}
@@ -384,9 +506,9 @@
             <article class="subscription-row cascade-row">
               <div>
                 <h3>{node.name}</h3>
-                <p>{node.domain} - {node.status} - {pair?.configState ?? 'no link record'}</p>
+                <p>{node.domain} - {statusText(node.status)} - {statusText(pair?.configState ?? t.noLinkRecord)}</p>
                 <p>
-                  {node.online ? 'online' : 'offline'} - {node.latencyMs} ms - {node.throughputMbps.toFixed(3)} Mbps
+                  {node.online ? t.online : t.offline} - {node.latencyMs} ms - {node.throughputMbps.toFixed(3)} Mbps
                   {#if node.lastError}
                     - {node.lastError}
                   {/if}
@@ -399,20 +521,20 @@
                 {#if pair}
                   <button type="button" onclick={() => planConfig(pair)} disabled={busyPair !== '' || busyNode !== ''}>
                     <ClipboardList size={16} />
-                    Plan
+                    {t.plan}
                   </button>
                   <button type="button" onclick={() => applyConfig(pair)} disabled={busyPair !== '' || busyNode !== '' || node.status === 'disabled'}>
                     <CheckCircle2 size={16} />
-                    Apply
+                    {t.apply}
                   </button>
                 {/if}
                 <button type="button" onclick={() => disableNode(node)} disabled={busyNode !== ''}>
                   <ShieldCheck size={16} />
-                  {node.status === 'disabled' ? 'Trust' : 'Disable'}
+                  {node.status === 'disabled' ? t.trust : t.disable}
                 </button>
                 <button type="button" onclick={() => deleteNode(node)} disabled={busyNode !== ''}>
                   <Trash2 size={16} />
-                  Delete
+                  {t.delete}
                 </button>
               </div>
             </article>

@@ -539,6 +539,11 @@ Select-String -Path internal\**\*.go,cmd\**\*.go,web\src\**\*.ts,web\src\**\*.sv
 - 2026-05-25: Target-server recovery confirmed the desired service state after manual cleanup: `omo.service` active on `127.0.0.1:8080`, temporary initialization services disabled and inactive, and local health returning `success:true`.
 - 2026-05-25: Installer recovery was tightened further so after the temporary service becomes healthy, `scripts/install.sh` immediately detects an existing completed bootstrap state, starts and health-checks the regular panel service, removes temporary init files, and disables the temporary services without waiting for a separate watcher cycle.
 - 2026-05-25: `sh -n scripts/install.sh`, `go test ./internal/bootstrap ./internal/api ./cmd/omo`, and `pnpm --dir web test` passed after the immediate initialized-handoff installer fix.
+- 2026-05-25: Fixed console data loading regressions found on the target dashboard: service instances, configuration distribution tokens, backup records, cascade records, audit records, and job events now serialize empty lists as `[]` instead of `null`, with router regression coverage for empty services, subscriptions, backups, and audit logs.
+- 2026-05-25: Hardened the service library, configuration distribution, settings, cascade, and audit frontend pages against legacy `null` list payloads so they render empty states instead of staying on a loading screen or crashing during `.length` access.
+- 2026-05-25: Completed Chinese/English copy coverage for settings, cascade nodes, and audit logs, including top summary cards, form labels, action buttons, loading states, empty states, and confirmation controls.
+- 2026-05-25: Refreshed embedded frontend assets and Linux amd64/arm64 bootstrap archives/checksums after the console loading and localization fixes.
+- 2026-05-25: `pnpm --dir web test`, `pnpm --dir web build`, `go test ./...`, `go vet ./...`, and `git diff --check` passed after the console loading and localization fixes.
 - `bash -n scripts/install.sh`: passed.
 - `scripts/install.sh --dry-run`: passed with sqlite/Caddy preparation, time-sync check, root-only initialization env/link files, temporary init service, init watcher, firewall guidance, and direct one-time initialization link output.
 - `/mnt/c/Program Files/Go/bin/go.exe test ./...`: passed.

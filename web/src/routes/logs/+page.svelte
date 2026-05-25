@@ -26,6 +26,7 @@
           noEntries: '暂无保存的审计记录。',
           recent: '近期活动',
           operations: '管理员操作',
+          summaryLabel: '审计概览',
           loading: '正在加载审计记录...',
           empty: '尚无审计记录。',
           failed: '无法加载审计日志。'
@@ -42,6 +43,7 @@
           noEntries: 'No saved audit entries.',
           recent: 'Recent Activity',
           operations: 'Administrator Operations',
+          summaryLabel: 'Audit summary',
           loading: 'Loading audit records...',
           empty: 'No audit records are available yet.',
           failed: 'Audit logs could not be loaded.'
@@ -57,7 +59,7 @@
     errorMessage = '';
     try {
       const result = await apiGet<AuditListResult>(`/api/audit?limit=${Number(limit)}`);
-      logs = result.logs;
+      logs = result.logs ?? [];
     } catch (error) {
       errorMessage = messageFrom(error);
     } finally {
@@ -97,7 +99,7 @@
       <p class="error-text">{errorMessage}</p>
     {/if}
 
-    <section class="summary-grid" aria-label="Audit summary">
+    <section class="summary-grid" aria-label={t.summaryLabel}>
       <article class="metric-card">
         <div class="metric-icon"><ClipboardList size={20} /></div>
         <div>

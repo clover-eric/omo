@@ -112,6 +112,8 @@
 - [x] Add `/logs` frontend page for audit log review.
 - [x] Add `/settings` frontend page for backup/restore, update operations, and diagnostics provider settings.
 - [x] Add Chinese-first shared console shell with working language/theme controls across all main menu pages.
+- [x] Return stable empty arrays for console list APIs and render empty/error states instead of persistent loading screens.
+- [x] Complete Chinese/English switching coverage for service library, configuration distribution, cascade nodes, audit logs, and settings pages.
 - [x] Improve light-mode console polish and smooth initialization progress/entry transition.
 - [x] Split `/dashboard` into a real overview page and keep `/services` as the service library.
 - [x] Add update manifest URL management to the settings API.

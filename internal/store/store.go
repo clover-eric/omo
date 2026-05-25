@@ -577,7 +577,7 @@ func (s *Store) ListServiceInstances(ctx context.Context) ([]ServiceInstance, er
 	}
 	defer rows.Close()
 
-	var records []ServiceInstance
+	records := make([]ServiceInstance, 0)
 	for rows.Next() {
 		record, err := scanServiceInstance(rows)
 		if err != nil {
@@ -697,7 +697,7 @@ func (s *Store) ServiceInstancesByProfile(ctx context.Context, profileID string)
 	}
 	defer rows.Close()
 
-	var records []ServiceInstance
+	records := make([]ServiceInstance, 0)
 	for rows.Next() {
 		record, err := scanServiceInstance(rows)
 		if err != nil {
@@ -769,7 +769,7 @@ func (s *Store) ListDistributionTokens(ctx context.Context) ([]DistributionToken
 	}
 	defer rows.Close()
 
-	var records []DistributionToken
+	records := make([]DistributionToken, 0)
 	for rows.Next() {
 		record, err := scanDistributionToken(rows)
 		if err != nil {
@@ -1019,7 +1019,7 @@ func (s *Store) ListCascadeNodes(ctx context.Context) ([]CascadeNode, error) {
 	}
 	defer rows.Close()
 
-	var records []CascadeNode
+	records := make([]CascadeNode, 0)
 	for rows.Next() {
 		record, err := scanCascadeNode(rows)
 		if err != nil {
@@ -1120,7 +1120,7 @@ func (s *Store) ListCascadePairs(ctx context.Context) ([]CascadePair, error) {
 	}
 	defer rows.Close()
 
-	var records []CascadePair
+	records := make([]CascadePair, 0)
 	for rows.Next() {
 		record, err := scanCascadePair(rows)
 		if err != nil {
@@ -1277,7 +1277,7 @@ func (s *Store) ListBackupRecords(ctx context.Context) ([]BackupRecord, error) {
 	}
 	defer rows.Close()
 
-	var records []BackupRecord
+	records := make([]BackupRecord, 0)
 	for rows.Next() {
 		record, err := scanBackupRecord(rows)
 		if err != nil {
@@ -1380,7 +1380,7 @@ func (s *Store) ListAuditLogs(ctx context.Context, limit int) ([]AuditLog, error
 	}
 	defer rows.Close()
 
-	var records []AuditLog
+	records := make([]AuditLog, 0)
 	for rows.Next() {
 		record, err := scanAuditLog(rows)
 		if err != nil {
@@ -1509,7 +1509,7 @@ func (s *Store) ListJobEventsAfter(ctx context.Context, kind string, afterID int
 	}
 	defer rows.Close()
 
-	var events []JobEvent
+	events := make([]JobEvent, 0)
 	for rows.Next() {
 		var event JobEvent
 		var createdAt string

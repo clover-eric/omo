@@ -108,7 +108,7 @@
     errorMessage = '';
     try {
       const result = await apiGet<SubscriptionList>('/api/subscriptions');
-      subscriptions = result.subscriptions;
+      subscriptions = result.subscriptions ?? [];
     } catch (error) {
       errorMessage = messageFrom(error);
     } finally {

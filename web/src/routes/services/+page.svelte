@@ -191,8 +191,8 @@
         apiGet<ServiceList>('/api/services'),
         apiGet<SingBoxStatus>('/api/core/singbox/status')
       ]);
-      profiles = serviceResult.profiles;
-      services = serviceResult.services;
+      profiles = serviceResult.profiles ?? [];
+      services = serviceResult.services ?? [];
       coreStatus = statusResult;
     } catch (err) {
       error = err instanceof Error ? err.message : t.loadError;
@@ -225,7 +225,7 @@
     try {
       lastJob = await apiPost<ServiceConfigJobResult>(`/api/services/${profile.id}/${action}`, {});
       if (lastJob.instances && lastJob.instances.length > 0) {
-        upsertServices(lastJob.instances);
+        upsertServices(lastJob.instances ?? []);
       }
     } catch (err) {
       error = err instanceof Error ? err.message : t.actionError;

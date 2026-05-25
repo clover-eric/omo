@@ -164,6 +164,13 @@ func TestSystemOverviewEndpoint(t *testing.T) {
 func TestServiceInstanceLifecycleEndpoints(t *testing.T) {
 	router, _ := testRouterWithServiceStore(t)
 
+	emptyListReq := httptest.NewRequest(http.MethodGet, "/api/services", nil)
+	emptyListRec := httptest.NewRecorder()
+	router.ServeHTTP(emptyListRec, emptyListReq)
+	if emptyListRec.Code != http.StatusOK || !strings.Contains(emptyListRec.Body.String(), `"services":[]`) {
+		t.Fatalf("expected empty services array, got %d: %s", emptyListRec.Code, emptyListRec.Body.String())
+	}
+
 	createReq := httptest.NewRequest(http.MethodPost, "/api/services", strings.NewReader(`{"profileId":"standard-secure-access","displayName":"Team access","listenPort":0}`))
 	addCSRF(createReq)
 	createRec := httptest.NewRecorder()
@@ -269,6 +276,13 @@ func TestServiceConfigApplyRejectsUnknownProfile(t *testing.T) {
 
 func TestSubscriptionCreateListRotateAndPublicEndpoint(t *testing.T) {
 	router := testRouterWithSubscriptions(t)
+
+	emptyListReq := httptest.NewRequest(http.MethodGet, "/api/subscriptions", nil)
+	emptyListRec := httptest.NewRecorder()
+	router.ServeHTTP(emptyListRec, emptyListReq)
+	if emptyListRec.Code != http.StatusOK || !strings.Contains(emptyListRec.Body.String(), `"subscriptions":[]`) {
+		t.Fatalf("expected empty subscriptions array, got %d: %s", emptyListRec.Code, emptyListRec.Body.String())
+	}
 
 	createReq := httptest.NewRequest(http.MethodPost, "/api/subscriptions", strings.NewReader(`{"name":"Operations devices"}`))
 	addCSRF(createReq)
@@ -577,6 +591,13 @@ func TestBackupCreateListAndRestoreEndpoints(t *testing.T) {
 		t.Fatalf("set marker: %v", err)
 	}
 
+	emptyListReq := httptest.NewRequest(http.MethodGet, "/api/backups", nil)
+	emptyListRec := httptest.NewRecorder()
+	router.ServeHTTP(emptyListRec, emptyListReq)
+	if emptyListRec.Code != http.StatusOK || !strings.Contains(emptyListRec.Body.String(), `"backups":[]`) {
+		t.Fatalf("expected empty backups array, got %d: %s", emptyListRec.Code, emptyListRec.Body.String())
+	}
+
 	createReq := httptest.NewRequest(http.MethodPost, "/api/backups", nil)
 	addCSRF(createReq)
 	createRec := httptest.NewRecorder()
@@ -634,6 +655,13 @@ func TestBackupCreateListAndRestoreEndpoints(t *testing.T) {
 
 func TestAuditListEndpoint(t *testing.T) {
 	router, appStore := testRouterWithAuditStore(t)
+	emptyReq := httptest.NewRequest(http.MethodGet, "/api/audit?limit=5", nil)
+	emptyRec := httptest.NewRecorder()
+	router.ServeHTTP(emptyRec, emptyReq)
+	if emptyRec.Code != http.StatusOK || !strings.Contains(emptyRec.Body.String(), `"logs":[]`) {
+		t.Fatalf("expected empty audit logs array, got %d: %s", emptyRec.Code, emptyRec.Body.String())
+	}
+
 	if err := appStore.AppendAuditLog(context.Background(), nil, "backup_created", "backup", "bak_test", `{"status":"ready"}`); err != nil {
 		t.Fatalf("append audit log: %v", err)
 	}
