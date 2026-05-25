@@ -59,7 +59,8 @@ a {
   gap: 8px;
 }
 
-.preference-controls button {
+.preference-controls button,
+.console-preference-controls button {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -74,13 +75,22 @@ a {
   font-size: 13px;
   font-weight: 800;
   cursor: pointer;
+}
+
+.preference-controls button {
   box-shadow: 0 8px 24px rgba(16, 24, 40, 0.08);
 }
 
-:root[data-theme='dark'] .preference-controls button {
+:root[data-theme='dark'] .preference-controls button,
+:root[data-theme='dark'] .console-preference-controls button {
   border-color: #344353;
   background: rgba(22, 28, 36, 0.9);
   color: #68d3e3;
+}
+
+.console-preference-controls {
+  display: inline-flex;
+  gap: 8px;
 }
 
 .shell {
@@ -161,6 +171,14 @@ a {
   justify-content: space-between;
   gap: 16px;
   margin-bottom: 24px;
+}
+
+.topbar-actions {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  justify-content: flex-end;
 }
 
 .eyebrow {
@@ -630,6 +648,11 @@ h2 {
   padding: 14px;
 }
 
+.action-link:hover {
+  background: #f7fbfc;
+  border-color: #b8d9df;
+}
+
 .subscription-row h3,
 .subscription-row p {
   margin: 0;
@@ -1044,6 +1067,10 @@ h2 {
   .panel-heading {
     align-items: stretch;
     flex-direction: column;
+  }
+
+  .topbar-actions {
+    justify-content: flex-start;
   }
 
   .summary-grid {

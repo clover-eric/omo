@@ -37,12 +37,14 @@ describe('apiPost', () => {
 
     expect(result.accepted).toBe(true);
     expect(fetchMock).toHaveBeenNthCalledWith(1, '/api/security/csrf', {
+      credentials: 'same-origin',
       headers: {
         Accept: 'application/json'
       }
     });
     expect(fetchMock).toHaveBeenNthCalledWith(2, '/api/auth/login', {
       method: 'POST',
+      credentials: 'same-origin',
       headers: {
         Accept: 'application/json',
         'Content-Type': 'application/json',

@@ -520,6 +520,12 @@ Select-String -Path internal\**\*.go,cmd\**\*.go,web\src\**\*.ts,web\src\**\*.sv
 - 2026-05-25: Target-server testing reached the HTTPS dashboard but reported `ERR_TOO_MANY_REDIRECTS`, caused by the backend not recognizing Caddy's trusted `X-Forwarded-Proto: https` header on loopback reverse-proxy traffic.
 - 2026-05-25: Fixed panel access enforcement and secure cookie decisions to trust forwarded HTTPS only from loopback reverse-proxy requests, added redirect-loop regression tests, and refreshed Linux bootstrap archives/checksums.
 - 2026-05-25: `go test ./...` passed after the trusted forwarded HTTPS fix.
+- 2026-05-25: Fixed the post-initialization console UX: `/dashboard` is now a real Chinese-first overview page, `/services` remains the service library, all main menu pages share one console shell, sidebar active states are consistent, and language/theme controls are embedded in the console topbar instead of floating over page content.
+- 2026-05-25: Added a global frontend preference store for Simplified Chinese by default, persistent Chinese/English switching, persistent light/dark switching, and shared Chinese menu labels across overview, service library, distribution, cascade, diagnostics, audit logs, and settings.
+- 2026-05-25: Hardened the frontend API client so non-JSON or unauthenticated responses become visible operator errors instead of leaving pages stuck in loading states; state-changing requests now explicitly use same-origin credentials.
+- 2026-05-25: Removed duplicated console sidebars from main pages, fixed the missing/fragile distribution navigation import path by centralizing icons, and replaced the diagnostics deprecated dynamic component usage.
+- 2026-05-25: Refreshed embedded frontend assets and Linux amd64/arm64 bootstrap archives/checksums after the console interaction fixes.
+- 2026-05-25: `pnpm --dir web test`, `pnpm --dir web build`, and `go test ./...` passed after the console interaction fixes.
 - `bash -n scripts/install.sh`: passed.
 - `scripts/install.sh --dry-run`: passed with sqlite/Caddy preparation, time-sync check, root-only initialization env/link files, temporary init service, init watcher, firewall guidance, and direct one-time initialization link output.
 - `/mnt/c/Program Files/Go/bin/go.exe test ./...`: passed.

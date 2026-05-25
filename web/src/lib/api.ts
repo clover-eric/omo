@@ -37,6 +37,20 @@ export type SingBoxStatus = {
   message: string;
 };
 
+export type SystemOverview = {
+  status: 'ok';
+  service: 'omo';
+  version: string;
+  timestamp: string;
+  bootstrap?: BootstrapStatus;
+  core: SingBoxStatus;
+  counts?: {
+    admins: number;
+    serviceProfiles: number;
+    services: number;
+  };
+};
+
 export type ServiceProfile = {
   id: string;
   version: string;
@@ -334,6 +348,7 @@ export type BootstrapEvent = {
 
 export async function apiGet<T>(path: string): Promise<T> {
   const response = await fetch(path, {
+    credentials: 'same-origin',
     headers: {
       Accept: 'application/json'
     }
@@ -345,6 +360,7 @@ export async function apiPost<T>(path: string, body: unknown): Promise<T> {
   await ensureCSRF();
   const response = await fetch(path, {
     method: 'POST',
+    credentials: 'same-origin',
     headers: {
       Accept: 'application/json',
       'Content-Type': 'application/json',
@@ -359,6 +375,7 @@ export async function apiPatch<T>(path: string, body: unknown): Promise<T> {
   await ensureCSRF();
   const response = await fetch(path, {
     method: 'PATCH',
+    credentials: 'same-origin',
     headers: {
       Accept: 'application/json',
       'Content-Type': 'application/json',
@@ -373,6 +390,7 @@ export async function apiDelete<T>(path: string): Promise<T> {
   await ensureCSRF();
   const response = await fetch(path, {
     method: 'DELETE',
+    credentials: 'same-origin',
     headers: {
       Accept: 'application/json',
       'X-CSRF-Token': csrfToken()
@@ -399,6 +417,14 @@ function csrfToken(): string {
 }
 
 async function parseEnvelope<T>(response: Response): Promise<T> {
+  const contentType = response.headers?.get?.('content-type') ?? 'application/json';
+  if (!contentType.includes('application/json')) {
+    throw new Error(
+      response.ok
+        ? '接口返回格式异常，请刷新页面或检查 OMO 服务状态。'
+        : `接口请求失败（HTTP ${response.status}），请检查登录状态和服务日志。`
+    );
+  }
   const payload = (await response.json()) as Envelope<T>;
   if (!response.ok || !payload.success) {
     throw new Error(payload.error?.message ?? 'Request failed');

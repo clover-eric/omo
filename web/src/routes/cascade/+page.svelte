@@ -8,9 +8,10 @@
   import Network from '@lucide/svelte/icons/network';
   import RefreshCw from '@lucide/svelte/icons/refresh-cw';
   import ShieldCheck from '@lucide/svelte/icons/shield-check';
-  import SlidersHorizontal from '@lucide/svelte/icons/sliders-horizontal';
   import Trash2 from '@lucide/svelte/icons/trash-2';
   import { onMount } from 'svelte';
+  import ConsoleShell from '$lib/ConsoleShell.svelte';
+  import { preferences, type Language } from '$lib/preferences';
   import {
     apiDelete,
     apiGet,
@@ -47,6 +48,23 @@
   let latestApply = $state<CascadeConfigApplyResult | null>(null);
   let latestSamples = $state<CascadeHealthSample[]>([]);
   let healthMessage = $state('');
+  let t = $derived(
+    $preferences.language === 'zh-CN'
+      ? {
+          title: '级联节点',
+          phase: '第六阶段',
+          refresh: '刷新级联节点',
+          sample: '采样级联健康',
+          failed: '级联操作失败。'
+        }
+      : {
+          title: 'Cascade Nodes',
+          phase: 'Phase 6',
+          refresh: 'Refresh cascade nodes',
+          sample: 'Sample cascade health',
+          failed: 'Cascade operation failed.'
+        }
+  );
 
   onMount(() => {
     void loadCascade();
@@ -192,70 +210,28 @@
   }
 
   function messageFrom(error: unknown) {
-    return error instanceof Error ? error.message : 'Cascade operation failed.';
+    return error instanceof Error ? error.message : t.failed;
   }
 </script>
 
 <svelte:head>
-  <title>Cascade Nodes - OMO Boundary Operations</title>
+  <title>{t.title} - OMO</title>
   <meta
     name="description"
     content="Manage authorized one-hop OMO cascade node pairing and trust records."
   />
 </svelte:head>
 
-<div class="shell">
-  <aside class="sidebar" aria-label="Primary navigation">
-    <div class="brand">
-      <div class="brand-mark">O</div>
-      <div>
-        <strong>OMO</strong>
-        <span>Boundary Operations</span>
-      </div>
-    </div>
+{#snippet actions()}
+  <button class="icon-button" type="button" aria-label={t.refresh} onclick={loadCascade} disabled={loading}>
+    <RefreshCw size={17} class={loading ? 'spin' : ''} />
+  </button>
+  <button class="icon-button" type="button" aria-label={t.sample} onclick={sampleHealth} disabled={sampling}>
+    <Activity size={17} class={sampling ? 'spin' : ''} />
+  </button>
+{/snippet}
 
-    <nav class="nav-list">
-      <a href="/services">
-        <ShieldCheck size={18} strokeWidth={1.8} />
-        <span>Service Library</span>
-      </a>
-      <a href="/subscriptions">
-        <ClipboardList size={18} strokeWidth={1.8} />
-        <span>Distribution</span>
-      </a>
-      <a class="active" href="/cascade">
-        <Network size={18} strokeWidth={1.8} />
-        <span>Cascade Nodes</span>
-      </a>
-      <a href="/diagnostics">
-        <Activity size={18} strokeWidth={1.8} />
-        <span>Server Checkup</span>
-      </a>
-      <a href="/logs">
-        <ClipboardList size={18} strokeWidth={1.8} />
-        <span>Audit Logs</span>
-      </a>
-      <a href="/settings">
-        <SlidersHorizontal size={18} strokeWidth={1.8} />
-        <span>Settings</span>
-      </a>
-    </nav>
-  </aside>
-
-  <main class="workspace">
-    <header class="topbar">
-      <div>
-        <p class="eyebrow">Phase 6</p>
-        <h1>Cascade Nodes</h1>
-      </div>
-      <button class="icon-button" type="button" aria-label="Refresh cascade nodes" onclick={loadCascade} disabled={loading}>
-        <RefreshCw size={17} class={loading ? 'spin' : ''} />
-      </button>
-      <button class="icon-button" type="button" aria-label="Sample cascade health" onclick={sampleHealth} disabled={sampling}>
-        <Activity size={17} class={sampling ? 'spin' : ''} />
-      </button>
-    </header>
-
+<ConsoleShell title={t.title} eyebrow={t.phase} activeHref="/cascade" {actions}>
     {#if errorMessage}
       <p class="error-text">{errorMessage}</p>
     {/if}
@@ -444,5 +420,4 @@
         </div>
       {/if}
     </section>
-  </main>
-</div>
+</ConsoleShell>

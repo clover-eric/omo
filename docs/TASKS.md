@@ -108,6 +108,8 @@
 - [x] Implement audit log listing API.
 - [x] Add `/logs` frontend page for audit log review.
 - [x] Add `/settings` frontend page for backup/restore, update operations, and diagnostics provider settings.
+- [x] Add Chinese-first shared console shell with working language/theme controls across all main menu pages.
+- [x] Split `/dashboard` into a real overview page and keep `/services` as the service library.
 - [x] Add update manifest URL management to the settings API.
 - [x] Add GoReleaser configuration, checksums, signatures, and SBOM generation.
 - [x] Integrate comprehensive security scans.
