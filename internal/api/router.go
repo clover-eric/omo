@@ -1120,6 +1120,8 @@ func writeServiceConfigError(w http.ResponseWriter, r *http.Request, err error) 
 		respondError(w, r, http.StatusNotFound, "SERVICE_PROFILE_NOT_FOUND", "Service profile was not found.", nil)
 	case errors.Is(err, configgen.ErrNoRollback):
 		respondError(w, r, http.StatusConflict, "SERVICE_ROLLBACK_UNAVAILABLE", "No previous service configuration is available for rollback.", nil)
+	case errors.Is(err, configgen.ErrConfigWrite):
+		respondError(w, r, http.StatusInternalServerError, "SERVICE_CONFIG_WRITE_FAILED", "Service configuration could not be written. Confirm the OMO data directory is writable and retry.", nil)
 	default:
 		respondError(w, r, http.StatusInternalServerError, "SERVICE_CONFIG_FAILED", "Service configuration operation failed; previous configuration was preserved or restored when possible.", nil)
 	}

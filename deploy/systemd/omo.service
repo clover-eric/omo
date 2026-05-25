@@ -7,14 +7,14 @@ Wants=network-online.target
 Type=simple
 User=omo
 Group=omo
-ExecStart=/usr/local/bin/omo serve --addr 127.0.0.1:8080
+ExecStart=/usr/local/bin/omo serve --addr 127.0.0.1:8080 --data /var/lib/omo/omo.db --caddy-config /etc/caddy/omo/omo.caddy --sing-box /usr/local/bin/sing-box --sing-box-config /var/lib/omo/sing-box/config.json --backup-dir /var/backups/omo --update-work-dir /var/lib/omo/updates
 Restart=on-failure
 RestartSec=5s
 NoNewPrivileges=true
 PrivateTmp=true
 ProtectSystem=full
 ProtectHome=true
-ReadWritePaths=/var/lib/omo /etc/omo /var/log/omo /var/backups/omo
+ReadWritePaths=/var/lib/omo /etc/omo /var/log/omo /var/backups/omo /etc/caddy/omo
 
 [Install]
 WantedBy=multi-user.target

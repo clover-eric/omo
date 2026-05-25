@@ -9,6 +9,7 @@
   import Zap from '@lucide/svelte/icons/zap';
   import { onMount } from 'svelte';
   import ConsoleShell from '$lib/ConsoleShell.svelte';
+  import { localizedErrorMessage } from '$lib/localizedErrors';
   import { preferences, type Language } from '$lib/preferences';
   import {
     apiGet,
@@ -57,6 +58,9 @@
     apply: string;
     rollback: string;
     clientCompatibility: string;
+    active: string;
+    planned: string;
+    disabled: string;
   };
 
   const copy: Record<Language, Copy> = {
@@ -95,7 +99,10 @@
       plan: '规划',
       apply: '应用',
       rollback: '回滚',
-      clientCompatibility: '客户端兼容性'
+      clientCompatibility: '客户端兼容性',
+      active: '运行中',
+      planned: '已规划',
+      disabled: '已停用'
     },
     'en-US': {
       title: 'Service Library',
@@ -132,31 +139,44 @@
       plan: 'Plan',
       apply: 'Apply',
       rollback: 'Rollback',
-      clientCompatibility: 'Client compatibility'
+      clientCompatibility: 'Client compatibility',
+      active: 'active',
+      planned: 'planned',
+      disabled: 'disabled'
     }
   };
 
-  const localizedProfiles: Record<Language, Record<string, { name: string; summary: string }>> = {
+  const localizedProfiles: Record<Language, Record<string, { name: string; summary: string; transport: string; security: string }>> = {
     'zh-CN': {
       'standard-secure-access': {
         name: '标准安全接入',
-        summary: '适合常规企业边界接入，兼顾稳定性、可维护性和默认安全基线。'
+        summary: '适合常规企业边界接入，兼顾稳定性、可维护性和默认安全基线。',
+        transport: '经托管 HTTPS 入口承载的 TCP 接入',
+        security: '域名证书配合后端生成的访问凭据'
       },
       'high-throughput-access': {
         name: '高吞吐接入',
-        summary: '面向大流量业务链路，优先保障吞吐和连接效率。'
+        summary: '面向大流量业务链路，优先保障吞吐和连接效率。',
+        transport: '经托管 UDP 入口承载的 QUIC 接入',
+        security: '后端生成凭据，并绑定域名证书材料'
       },
       'broad-compatibility-access': {
         name: '广泛兼容接入',
-        summary: '优先覆盖更多客户端和网络环境，适合复杂终端接入。'
+        summary: '优先覆盖更多客户端和网络环境，适合复杂终端接入。',
+        transport: '经托管服务入口承载的 TCP 兼容接入',
+        security: '后端生成凭据，可在域名就绪后绑定证书'
       },
       'lightweight-fallback-access': {
         name: '轻量备用接入',
-        summary: '用于资源有限或临时恢复场景，保持配置简单可回退。'
+        summary: '用于资源有限或临时恢复场景，保持配置简单可回退。',
+        transport: '经后端托管备用入口承载的 TCP 接入',
+        security: '后端生成凭据，降低运行时资源开销'
       },
       'mobile-optimized-access': {
         name: '移动优化接入',
-        summary: '面向移动设备和不稳定网络，降低切换和恢复成本。'
+        summary: '面向移动设备和不稳定网络，降低切换和恢复成本。',
+        transport: '面向重连优化的自适应托管入口',
+        security: '后端生成凭据，并在证书可用时绑定域名证书'
       }
     },
     'en-US': {}
@@ -195,7 +215,7 @@
       services = serviceResult.services ?? [];
       coreStatus = statusResult;
     } catch (err) {
-      error = err instanceof Error ? err.message : t.loadError;
+      error = localizedErrorMessage(err, $preferences.language, t.loadError);
     } finally {
       loading = false;
     }
@@ -213,7 +233,7 @@
       });
       services = [result.service, ...services];
     } catch (err) {
-      error = err instanceof Error ? err.message : t.createError;
+      error = localizedErrorMessage(err, $preferences.language, t.createError);
     } finally {
       busyProfile = '';
     }
@@ -228,7 +248,7 @@
         upsertServices(lastJob.instances ?? []);
       }
     } catch (err) {
-      error = err instanceof Error ? err.message : t.actionError;
+      error = localizedErrorMessage(err, $preferences.language, t.actionError);
     } finally {
       busyProfile = '';
     }
@@ -258,6 +278,18 @@
 
   function profileSummary(profile: ServiceProfile) {
     return localizedProfiles[$preferences.language][profile.id]?.summary ?? profile.summary;
+  }
+
+  function profileTransport(profile: ServiceProfile) {
+    return localizedProfiles[$preferences.language][profile.id]?.transport ?? profile.transport;
+  }
+
+  function profileSecurity(profile: ServiceProfile) {
+    return localizedProfiles[$preferences.language][profile.id]?.security ?? profile.securityLayer;
+  }
+
+  function statusText(status: ServiceInstance['status']) {
+    return t[status] ?? status;
   }
 
   function requirementText(profile: ServiceProfile) {
@@ -334,7 +366,7 @@
             <article class="instance-row">
               <div>
                 <strong>{service.displayName}</strong>
-                <span>{service.profileId} / {service.status}</span>
+                <span>{service.profileId} / {statusText(service.status)}</span>
               </div>
               <code>{service.listenPort === 0 ? t.plannedEntry : `:${service.listenPort}`}</code>
             </article>
@@ -361,11 +393,11 @@
             <dl class="service-facts">
               <div>
                 <dt>{t.transport}</dt>
-                <dd>{profile.transport}</dd>
+                <dd>{profileTransport(profile)}</dd>
               </div>
               <div>
                 <dt>{t.security}</dt>
-                <dd>{profile.securityLayer}</dd>
+                <dd>{profileSecurity(profile)}</dd>
               </div>
               <div>
                 <dt>{t.requirements}</dt>

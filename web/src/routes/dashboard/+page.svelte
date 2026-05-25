@@ -11,6 +11,7 @@
   import SlidersHorizontal from '@lucide/svelte/icons/sliders-horizontal';
   import { onMount } from 'svelte';
   import ConsoleShell from '$lib/ConsoleShell.svelte';
+  import { localizedErrorMessage } from '$lib/localizedErrors';
   import { preferences, type Language } from '$lib/preferences';
   import { apiGet, type SystemOverview } from '$lib/api';
 
@@ -176,7 +177,7 @@
     try {
       overview = await apiGet<SystemOverview>('/api/system/overview');
     } catch (err) {
-      error = err instanceof Error ? err.message : t.loadError;
+      error = localizedErrorMessage(err, $preferences.language, t.loadError);
     } finally {
       loading = false;
     }

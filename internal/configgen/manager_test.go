@@ -113,6 +113,20 @@ func TestApplyRestoresPreviousConfigAfterPostApplyValidationFailure(t *testing.T
 	}
 }
 
+func TestApplyReportsConfigWriteFailure(t *testing.T) {
+	ctx := context.Background()
+	dir := t.TempDir()
+	configPath := filepath.Join(dir, "missing", "config.json")
+	if err := os.WriteFile(filepath.Join(dir, "missing"), []byte("not a directory"), 0o600); err != nil {
+		t.Fatalf("write blocking file: %v", err)
+	}
+	manager := testManager(t, configPath, JSONValidator{})
+
+	if _, err := manager.Apply(ctx, "standard-secure-access"); !errors.Is(err, ErrConfigWrite) {
+		t.Fatalf("expected config write error, got %v", err)
+	}
+}
+
 func testManager(t *testing.T, configPath string, validator Validator) *Manager {
 	t.Helper()
 	manager, err := NewManager(Options{

@@ -11,6 +11,7 @@
   import Trash2 from '@lucide/svelte/icons/trash-2';
   import { onMount } from 'svelte';
   import ConsoleShell from '$lib/ConsoleShell.svelte';
+  import { localizedErrorMessage } from '$lib/localizedErrors';
   import { preferences, type Language } from '$lib/preferences';
   import {
     apiDelete,
@@ -318,7 +319,7 @@
   }
 
   function messageFrom(error: unknown) {
-    return error instanceof Error ? error.message : t.failed;
+    return localizedErrorMessage(error, $preferences.language, t.failed);
   }
 
   function statusText(value: string) {

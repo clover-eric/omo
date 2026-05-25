@@ -79,7 +79,7 @@
             onclick={toggleLanguage}
           >
             <Languages size={16} />
-            <span>{labels.currentLanguageShort}</span>
+            <span>{labels.nextLanguageShort}</span>
           </button>
           <button
             type="button"

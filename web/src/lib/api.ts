@@ -9,6 +9,20 @@
   requestId: string;
 };
 
+export class ApiError extends Error {
+  code: string;
+  details: Record<string, unknown>;
+  status: number;
+
+  constructor(message: string, options: { code?: string; details?: Record<string, unknown>; status?: number } = {}) {
+    super(message);
+    this.name = 'ApiError';
+    this.code = options.code ?? 'REQUEST_FAILED';
+    this.details = options.details ?? {};
+    this.status = options.status ?? 0;
+  }
+}
+
 export type BootstrapStatus = {
   state: string;
   initialized: boolean;
@@ -419,15 +433,20 @@ function csrfToken(): string {
 async function parseEnvelope<T>(response: Response): Promise<T> {
   const contentType = response.headers?.get?.('content-type') ?? 'application/json';
   if (!contentType.includes('application/json')) {
-    throw new Error(
+    throw new ApiError(
       response.ok
         ? '接口返回格式异常，请刷新页面或检查 OMO 服务状态。'
-        : `接口请求失败（HTTP ${response.status}），请检查登录状态和服务日志。`
+        : `接口请求失败（HTTP ${response.status}），请检查登录状态和服务日志。`,
+      { code: 'NON_JSON_RESPONSE', status: response.status }
     );
   }
   const payload = (await response.json()) as Envelope<T>;
   if (!response.ok || !payload.success) {
-    throw new Error(payload.error?.message ?? 'Request failed');
+    throw new ApiError(payload.error?.message ?? 'Request failed', {
+      code: payload.error?.code,
+      details: payload.error?.details,
+      status: response.status
+    });
   }
   return payload.data as T;
 }

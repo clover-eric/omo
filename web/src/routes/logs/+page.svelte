@@ -5,6 +5,7 @@
   import ShieldCheck from '@lucide/svelte/icons/shield-check';
   import { onMount } from 'svelte';
   import ConsoleShell from '$lib/ConsoleShell.svelte';
+  import { localizedErrorMessage } from '$lib/localizedErrors';
   import { preferences, type Language } from '$lib/preferences';
   import { apiGet, type AuditListResult, type AuditLog } from '$lib/api';
 
@@ -68,7 +69,7 @@
   }
 
   function messageFrom(error: unknown) {
-    return error instanceof Error ? error.message : t.failed;
+    return localizedErrorMessage(error, $preferences.language, t.failed);
   }
 
   function detailsText(details: Record<string, unknown>) {

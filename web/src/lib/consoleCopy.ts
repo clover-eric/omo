@@ -21,7 +21,8 @@ export type ConsoleCopyKey =
   | 'switchToEnglish'
   | 'switchToLight'
   | 'switchToDark'
-  | 'currentLanguageShort';
+  | 'currentLanguageShort'
+  | 'nextLanguageShort';
 
 export const consoleCopy: Record<Language, Record<ConsoleCopyKey, string>> = {
   'zh-CN': {
@@ -39,7 +40,8 @@ export const consoleCopy: Record<Language, Record<ConsoleCopyKey, string>> = {
     switchToEnglish: '切换为英文',
     switchToLight: '切换为浅色模式',
     switchToDark: '切换为深色模式',
-    currentLanguageShort: '中'
+    currentLanguageShort: '中文',
+    nextLanguageShort: 'EN'
   },
   'en-US': {
     overview: 'Overview',
@@ -56,7 +58,8 @@ export const consoleCopy: Record<Language, Record<ConsoleCopyKey, string>> = {
     switchToEnglish: 'Switch to English',
     switchToLight: 'Switch to light mode',
     switchToDark: 'Switch to dark mode',
-    currentLanguageShort: 'EN'
+    currentLanguageShort: 'English',
+    nextLanguageShort: '中文'
   }
 };
 

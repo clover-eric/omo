@@ -87,6 +87,7 @@ After initialization settings indicate the panel entry is configured, `internal/
 - `/api/services`, `POST /api/services`, and `PATCH /api/services/{id}` expose the persisted managed service instance catalog declared by OpenAPI.
 - `/api/services/{id}/apply` and `/api/services/{id}/rollback` create durable jobs and return the unified API envelope.
 - Successful apply synchronizes matching planned service instances to `active` with the backend-selected listen port and configuration version. Successful rollback moves active instances for that profile back to `planned`.
+- The installer runs the regular and temporary OMO services with an absolute managed core configuration path at `/var/lib/omo/sing-box/config.json`, plus `/var/lib/omo/updates` and `/var/backups/omo`, so systemd hardening does not leave service configuration writes in an ambiguous relative working directory.
 
 This is intentionally file-level and backend-only. Later Phase 3 work can swap the JSON validator for `sing-box check`, then add service reload and health checks without changing the public API contract.
 

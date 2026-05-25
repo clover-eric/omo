@@ -6,6 +6,7 @@
   import RefreshCw from '@lucide/svelte/icons/refresh-cw';
   import { onMount } from 'svelte';
   import ConsoleShell from '$lib/ConsoleShell.svelte';
+  import { localizedErrorMessage } from '$lib/localizedErrors';
   import { preferences, type Language } from '$lib/preferences';
   import {
     apiGet,
@@ -161,7 +162,7 @@
   }
 
   function messageFrom(error: unknown) {
-    return error instanceof Error ? error.message : t.operationFailed;
+    return localizedErrorMessage(error, $preferences.language, t.operationFailed);
   }
 </script>
 

@@ -13,6 +13,8 @@ CONFIG_DIR="/etc/omo"
 DATA_DIR="/var/lib/omo"
 LOG_DIR="/var/log/omo"
 BACKUP_DIR="/var/backups/omo"
+SING_BOX_CONFIG_PATH="${DATA_DIR}/sing-box/config.json"
+UPDATE_WORK_DIR="${DATA_DIR}/updates"
 BIN_PATH="/usr/local/bin/omo"
 OMOCTL_BIN_PATH="/usr/local/bin/omoctl"
 SING_BOX_BIN_PATH="/usr/local/bin/sing-box"
@@ -253,7 +255,7 @@ Wants=network-online.target
 Type=simple
 User=omo
 Group=omo
-ExecStart=${BIN_PATH} serve --addr 127.0.0.1:8080 --data ${DATA_DIR}/omo.db --caddy-config ${CADDY_CONFIG_PATH} --sing-box ${SING_BOX_BIN_PATH}
+ExecStart=${BIN_PATH} serve --addr 127.0.0.1:8080 --data ${DATA_DIR}/omo.db --caddy-config ${CADDY_CONFIG_PATH} --sing-box ${SING_BOX_BIN_PATH} --sing-box-config ${SING_BOX_CONFIG_PATH} --backup-dir ${BACKUP_DIR} --update-work-dir ${UPDATE_WORK_DIR}
 Restart=on-failure
 RestartSec=5s
 NoNewPrivileges=true
@@ -283,7 +285,7 @@ Type=simple
 User=omo
 Group=omo
 EnvironmentFile=${INIT_ENV_PATH}
-ExecStart=${BIN_PATH} serve --addr 0.0.0.0:${INIT_PORT} --data ${DATA_DIR}/omo.db --caddy-config ${CADDY_CONFIG_PATH} --caddy-upstream 127.0.0.1:8080 --expected-ip ${SERVER_IP} --sing-box ${SING_BOX_BIN_PATH}
+ExecStart=${BIN_PATH} serve --addr 0.0.0.0:${INIT_PORT} --data ${DATA_DIR}/omo.db --caddy-config ${CADDY_CONFIG_PATH} --caddy-upstream 127.0.0.1:8080 --expected-ip ${SERVER_IP} --sing-box ${SING_BOX_BIN_PATH} --sing-box-config ${SING_BOX_CONFIG_PATH} --backup-dir ${BACKUP_DIR} --update-work-dir ${UPDATE_WORK_DIR}
 Restart=on-failure
 RestartSec=5s
 NoNewPrivileges=true
@@ -610,7 +612,7 @@ prepare_paths() {
   if ! id -u omo >/dev/null 2>&1; then
     run useradd --system --home "$DATA_DIR" --shell /usr/sbin/nologin omo
   fi
-  run mkdir -p "$INSTALL_DIR" "$CONFIG_DIR" "$DATA_DIR" "$LOG_DIR" "$BACKUP_DIR"
+  run mkdir -p "$INSTALL_DIR" "$CONFIG_DIR" "$DATA_DIR" "$DATA_DIR/sing-box" "$UPDATE_WORK_DIR" "$LOG_DIR" "$BACKUP_DIR"
   run chown -R omo:omo "$DATA_DIR" "$LOG_DIR" "$BACKUP_DIR"
   run chmod 0750 "$CONFIG_DIR" "$DATA_DIR" "$LOG_DIR" "$BACKUP_DIR"
   run rm -f "$READY_MARKER"

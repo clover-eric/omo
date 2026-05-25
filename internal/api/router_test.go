@@ -274,6 +274,37 @@ func TestServiceConfigApplyRejectsUnknownProfile(t *testing.T) {
 	}
 }
 
+func TestServiceConfigApplyReportsWriteFailure(t *testing.T) {
+	ctx := context.Background()
+	appStore, err := store.Open(ctx, filepath.Join(t.TempDir(), "omo.db"))
+	if err != nil {
+		t.Fatalf("open store: %v", err)
+	}
+	t.Cleanup(func() { _ = appStore.Close() })
+	blocker := filepath.Join(t.TempDir(), "sing-box")
+	if err := os.WriteFile(blocker, []byte("not a directory"), 0o600); err != nil {
+		t.Fatalf("write blocker: %v", err)
+	}
+	manager, err := configgen.NewManager(configgen.Options{ConfigPath: filepath.Join(blocker, "config.json")})
+	if err != nil {
+		t.Fatalf("new config manager: %v", err)
+	}
+	router := NewRouter(Config{
+		StaticFS:  fstest.MapFS{},
+		Store:     appStore,
+		ConfigGen: configgen.NewService(manager, appStore),
+	})
+
+	req := httptest.NewRequest(http.MethodPost, "/api/services/standard-secure-access/apply", nil)
+	addCSRF(req)
+	rec := httptest.NewRecorder()
+	router.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusInternalServerError || !strings.Contains(rec.Body.String(), "SERVICE_CONFIG_WRITE_FAILED") {
+		t.Fatalf("expected write failure response, got %d: %s", rec.Code, rec.Body.String())
+	}
+}
+
 func TestSubscriptionCreateListRotateAndPublicEndpoint(t *testing.T) {
 	router := testRouterWithSubscriptions(t)
 

@@ -19,6 +19,7 @@ import (
 var (
 	ErrInvalidProfile = errors.New("invalid service profile")
 	ErrNoRollback     = errors.New("no previous service configuration to roll back")
+	ErrConfigWrite    = errors.New("service configuration write failed")
 )
 
 type Validator interface {
@@ -104,15 +105,15 @@ func (m *Manager) Apply(ctx context.Context, profileID string) (Result, error) {
 	}
 
 	if err := os.MkdirAll(filepath.Dir(m.configPath), 0o755); err != nil {
-		return Result{}, err
+		return Result{}, fmt.Errorf("%w: %v", ErrConfigWrite, err)
 	}
 	if err := os.MkdirAll(m.backupDir, 0o755); err != nil {
-		return Result{}, err
+		return Result{}, fmt.Errorf("%w: %v", ErrConfigWrite, err)
 	}
 
 	tmpPath := m.configPath + ".tmp-" + version
 	if err := os.WriteFile(tmpPath, rendered, 0o600); err != nil {
-		return Result{}, err
+		return Result{}, fmt.Errorf("%w: %v", ErrConfigWrite, err)
 	}
 	defer func() { _ = os.Remove(tmpPath) }()
 
@@ -125,7 +126,7 @@ func (m *Manager) Apply(ctx context.Context, profileID string) (Result, error) {
 		return Result{}, err
 	}
 	if err := os.Rename(tmpPath, m.configPath); err != nil {
-		return Result{}, err
+		return Result{}, fmt.Errorf("%w: %v", ErrConfigWrite, err)
 	}
 	if err := m.validator.Validate(ctx, m.configPath); err != nil {
 		_ = m.restorePrevious()
