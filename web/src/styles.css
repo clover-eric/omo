@@ -362,7 +362,7 @@ h2 {
 .workflow-strip {
   display: grid;
   gap: 12px;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   margin-top: 16px;
 }
 
@@ -613,11 +613,53 @@ h2 {
 }
 
 .expert-box {
-  border-top: 1px solid #e1e7ee;
-  display: grid;
-  gap: 12px;
+  border: 1px solid #e1e7ee;
+  border-radius: 8px;
   margin-top: 16px;
-  padding-top: 16px;
+  padding: 0;
+}
+
+.expert-box summary {
+  align-items: center;
+  cursor: pointer;
+  display: flex;
+  justify-content: space-between;
+  list-style: none;
+  padding: 12px 14px;
+}
+
+.expert-box summary::-webkit-details-marker {
+  display: none;
+}
+
+.expert-box summary::after {
+  color: #607085;
+  content: '+';
+  font-size: 18px;
+  font-weight: 800;
+}
+
+.expert-box[open] summary::after {
+  content: '-';
+}
+
+.expert-box summary span,
+.expert-box summary strong,
+.expert-box summary small {
+  display: block;
+}
+
+.expert-box summary small {
+  color: #607085;
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1.4;
+  margin-top: 3px;
+}
+
+.expert-box > .service-facts,
+.expert-box > .client-list {
+  margin: 0 14px 14px;
 }
 
 .detail-actions {
@@ -802,6 +844,43 @@ h2 {
   grid-template-columns: minmax(320px, 420px) minmax(0, 1fr);
 }
 
+.distribution-workflow {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  margin-bottom: 16px;
+}
+
+.distribution-workflow div {
+  align-items: flex-start;
+  background: #f6f9fb;
+  border: 1px solid #dfe6ee;
+  border-radius: 8px;
+  display: grid;
+  gap: 6px;
+  min-height: 86px;
+  padding: 14px;
+}
+
+.distribution-workflow svg {
+  color: #0b5d70;
+}
+
+.distribution-workflow strong,
+.distribution-workflow span {
+  display: block;
+}
+
+.distribution-workflow strong {
+  font-size: 14px;
+}
+
+.distribution-workflow span {
+  color: #607085;
+  font-size: 13px;
+  line-height: 1.4;
+}
+
 .distribution-form label {
   display: grid;
   gap: 7px;
@@ -927,17 +1006,72 @@ h2 {
   background: white;
   border: 1px solid #d8dde6;
   border-radius: 8px;
-  height: 180px;
+  height: 210px;
   object-fit: contain;
   padding: 10px;
-  width: 180px;
+  width: 210px;
 }
 
 .qr-preview-shell {
-  align-items: start;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 12px;
+  align-items: stretch;
+  display: grid;
+  gap: 14px;
+  grid-template-columns: auto minmax(0, 1fr);
+}
+
+.import-console {
+  background: #f6f9fb;
+  border: 1px solid #dfe6ee;
+  border-radius: 8px;
+  display: grid;
+  gap: 14px;
+  margin-top: 14px;
+  padding: 14px;
+}
+
+.qr-card {
+  display: grid;
+  gap: 10px;
+}
+
+.qr-guidance {
+  display: grid;
+  align-content: start;
+  gap: 8px;
+  min-width: 0;
+}
+
+.qr-guidance h3,
+.qr-guidance p {
+  margin: 0;
+}
+
+.qr-guidance h3 {
+  font-size: 18px;
+}
+
+.qr-guidance p {
+  color: #607085;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.qr-guidance span {
+  color: #405064;
+  font-size: 12px;
+  font-weight: 800;
+  margin-top: 4px;
+  text-transform: uppercase;
+}
+
+.qr-guidance code {
+  background: #111820;
+  border-radius: 8px;
+  color: #dbe7ef;
+  font-size: 12px;
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+  padding: 10px;
 }
 
 .compact-warning {
@@ -1402,6 +1536,7 @@ h2 {
   }
 
   .distribution-grid,
+  .distribution-workflow,
   .format-links,
   .diagnostics-grid,
   .cascade-grid,
@@ -1444,6 +1579,16 @@ h2 {
   .row-actions button,
   .row-select,
   .plan-row > button:not(.plan-select) {
+    width: 100%;
+  }
+
+  .qr-preview-shell {
+    grid-template-columns: 1fr;
+  }
+
+  .qr-preview {
+    height: auto;
+    max-width: 260px;
     width: 100%;
   }
 
@@ -2046,6 +2191,8 @@ h2 {
 :root[data-theme='light'] .workflow-strip div,
 :root[data-theme='light'] .service-command-metrics article,
 :root[data-theme='light'] .service-next-panel div,
+:root[data-theme='light'] .distribution-workflow div,
+:root[data-theme='light'] .import-console,
 :root[data-theme='light'] .service-card,
 :root[data-theme='light'] .plan-row,
 :root[data-theme='light'] .instance-row,
@@ -2065,6 +2212,10 @@ h2 {
 :root[data-theme='light'] .metric-card p,
 :root[data-theme='light'] .metric-card span,
 :root[data-theme='light'] .workflow-strip span,
+:root[data-theme='light'] .distribution-workflow span,
+:root[data-theme='light'] .qr-guidance p,
+:root[data-theme='light'] .qr-guidance span,
+:root[data-theme='light'] .expert-box summary small,
 :root[data-theme='light'] .plan-main p,
 :root[data-theme='light'] .panel-note,
 :root[data-theme='light'] .secret-placeholder p,
@@ -2105,6 +2256,7 @@ h2 {
 :root[data-theme='light'] .service-icon,
 :root[data-theme='light'] .icon-button,
 :root[data-theme='light'] .secondary-action,
+:root[data-theme='light'] .distribution-workflow div,
 :root[data-theme='light'] .init-form .secondary-button {
   background: #eef3f5;
   border-color: #cfd7e3;
@@ -2117,6 +2269,8 @@ h2 {
 :root[data-theme='dark'] .workflow-strip div,
 :root[data-theme='dark'] .service-command-metrics article,
 :root[data-theme='dark'] .service-next-panel div,
+:root[data-theme='dark'] .distribution-workflow div,
+:root[data-theme='dark'] .import-console,
 :root[data-theme='dark'] .service-card,
 :root[data-theme='dark'] .plan-row,
 :root[data-theme='dark'] .instance-row,
@@ -2137,6 +2291,10 @@ h2 {
 :root[data-theme='dark'] .metric-card p,
 :root[data-theme='dark'] .metric-card span,
 :root[data-theme='dark'] .workflow-strip span,
+:root[data-theme='dark'] .distribution-workflow span,
+:root[data-theme='dark'] .qr-guidance p,
+:root[data-theme='dark'] .qr-guidance span,
+:root[data-theme='dark'] .expert-box summary small,
 :root[data-theme='dark'] .plan-main p,
 :root[data-theme='dark'] .panel-note,
 :root[data-theme='dark'] .secret-placeholder p,
@@ -2177,6 +2335,7 @@ h2 {
 :root[data-theme='dark'] .service-icon,
 :root[data-theme='dark'] .icon-button,
 :root[data-theme='dark'] .secondary-action,
+:root[data-theme='dark'] .distribution-workflow div,
 :root[data-theme='dark'] .subscription-row .secondary-action,
 :root[data-theme='dark'] .plan-title span,
 :root[data-theme='dark'] .status-chip,

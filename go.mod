@@ -3,6 +3,7 @@ module omo
 go 1.26
 
 require (
+	github.com/boombuler/barcode v1.1.0
 	github.com/go-chi/chi/v5 v5.2.3
 	golang.org/x/crypto v0.52.0
 	modernc.org/sqlite v1.50.1

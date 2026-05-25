@@ -518,7 +518,7 @@ func TestPublicSubscriptionUnknownClientGetsImportPage(t *testing.T) {
 	if contentType := publicRec.Header().Get("Content-Type"); !strings.Contains(contentType, "text/html") {
 		t.Fatalf("expected html content type, got %q", contentType)
 	}
-	if !strings.Contains(publicRec.Body.String(), "Select an import format") {
+	if !strings.Contains(publicRec.Body.String(), "OMO Configuration Distribution") || !strings.Contains(publicRec.Body.String(), "sing-box JSON") {
 		t.Fatalf("expected manual import page, got %s", publicRec.Body.String())
 	}
 }

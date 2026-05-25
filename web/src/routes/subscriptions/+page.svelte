@@ -8,6 +8,7 @@
   import LoaderCircle from '@lucide/svelte/icons/loader-circle';
   import QrCode from '@lucide/svelte/icons/qr-code';
   import RefreshCw from '@lucide/svelte/icons/refresh-cw';
+  import ShieldCheck from '@lucide/svelte/icons/shield-check';
   import Trash2 from '@lucide/svelte/icons/trash-2';
   import { onMount } from 'svelte';
   import ConsoleShell from '$lib/ConsoleShell.svelte';
@@ -37,6 +38,13 @@
     expiration: string;
     expirationPlaceholder: string;
     createToken: string;
+    workflowTitle: string;
+    workflowService: string;
+    workflowServiceNote: string;
+    workflowEntry: string;
+    workflowEntryNote: string;
+    workflowImport: string;
+    workflowImportNote: string;
     manageTitle: string;
     manageEyebrow: string;
     noSelection: string;
@@ -66,6 +74,12 @@
     cancelDelete: string;
     formats: string;
     qrPreview: string;
+    qrInstruction: string;
+    qrEncodedTarget: string;
+    importPage: string;
+    singBoxFormat: string;
+    clashFormat: string;
+    directFormat: string;
     qrUnavailable?: string;
     internalUrlWarning?: string;
     publicDisabled: string;
@@ -85,6 +99,13 @@
       expiration: '过期时间',
       expirationPlaceholder: '可留空，例如 2026-06-01 09:30',
       createToken: '创建入口',
+      workflowTitle: '使用路径',
+      workflowService: '先应用服务',
+      workflowServiceNote: '服务库中至少有一个运行中的接入实例',
+      workflowEntry: '再创建入口',
+      workflowEntryNote: '入口只负责授权设备获取后端生成的配置',
+      workflowImport: '最后导入设备',
+      workflowImportNote: '扫码进入导入页，按客户端选择格式',
       manageTitle: '分发入口管理',
       manageEyebrow: '选中记录',
       noSelection: '选择一条分发记录后，可以管理状态并轮换新的导入 URL。',
@@ -114,6 +135,12 @@
       cancelDelete: '取消',
       formats: '可用导入格式',
       qrPreview: '二维码导入',
+      qrInstruction: '扫码会打开 OMO 导入选择页。手机没有自动唤起客户端时，在页面里选择 sing-box、Clash/Mihomo 或复制通用 URL。',
+      qrEncodedTarget: '二维码目标',
+      importPage: '导入选择页',
+      singBoxFormat: 'sing-box JSON',
+      clashFormat: 'Clash/Mihomo YAML',
+      directFormat: '通用 URL',
       publicDisabled: '该入口已禁用，公开导入地址不会返回配置。',
       operationFailed: '配置分发操作失败。',
       invalidExpiration: '过期时间格式无效，请使用 2026-06-01 09:30。'
@@ -129,6 +156,13 @@
       expiration: 'Expiration',
       expirationPlaceholder: 'Optional, for example 2026-06-01 09:30',
       createToken: 'Create Entry',
+      workflowTitle: 'Workflow',
+      workflowService: 'Apply service first',
+      workflowServiceNote: 'At least one access instance must be active in Service Library',
+      workflowEntry: 'Create entry',
+      workflowEntryNote: 'The entry authorizes devices to fetch backend-generated config',
+      workflowImport: 'Import on device',
+      workflowImportNote: 'Scan to open the import page, then choose the client format',
       manageTitle: 'Distribution Entry Management',
       manageEyebrow: 'Selected record',
       noSelection: 'Select a distribution record to manage status and rotate a new import URL.',
@@ -158,6 +192,12 @@
       cancelDelete: 'Cancel',
       formats: 'Available import formats',
       qrPreview: 'QR import',
+      qrInstruction: 'Scanning opens the OMO import selection page. If the client is not opened automatically, choose sing-box, Clash/Mihomo, or copy the direct URL on that page.',
+      qrEncodedTarget: 'QR target',
+      importPage: 'Import page',
+      singBoxFormat: 'sing-box JSON',
+      clashFormat: 'Clash/Mihomo YAML',
+      directFormat: 'Direct URL',
       qrUnavailable: 'QR preview cannot load yet. Copy the URL for now, or confirm the panel domain is serving HTTPS.',
       internalUrlWarning: 'The returned URL is internal and cannot be used by external devices. Confirm the panel domain, then rotate this entry again.',
       publicDisabled: 'This entry is disabled; the public import address will not return configuration.',
@@ -189,6 +229,16 @@
     latestToken && selectedSubscription && latestToken.subscription.id === selectedSubscription.id
       ? latestToken
       : null
+  );
+  let importFormats = $derived(
+    selectedTokenVisible
+      ? [
+          { label: t.importPage, href: selectedTokenVisible.url },
+          { label: t.singBoxFormat, href: `${selectedTokenVisible.url}?format=sing-box` },
+          { label: t.clashFormat, href: `${selectedTokenVisible.url}?format=clash` },
+          { label: t.directFormat, href: `${selectedTokenVisible.url}?format=uri` }
+        ]
+      : []
   );
 
   $effect(() => {
@@ -384,6 +434,24 @@
     <p class="error-text">{errorMessage}</p>
   {/if}
 
+  <section class="panel distribution-workflow" aria-label={t.workflowTitle}>
+    <div>
+      <ShieldCheck size={18} />
+      <strong>{t.workflowService}</strong>
+      <span>{t.workflowServiceNote}</span>
+    </div>
+    <div>
+      <KeyRound size={18} />
+      <strong>{t.workflowEntry}</strong>
+      <span>{t.workflowEntryNote}</span>
+    </div>
+    <div>
+      <QrCode size={18} />
+      <strong>{t.workflowImport}</strong>
+      <span>{t.workflowImportNote}</span>
+    </div>
+  </section>
+
   <section class="distribution-grid">
     <form class="panel distribution-form" onsubmit={(event) => { event.preventDefault(); createSubscription(); }}>
       <div class="panel-heading">
@@ -461,32 +529,44 @@
             </button>
           </div>
 
-          <p class="eyebrow format-heading">{t.formats}</p>
-          <div class="format-links">
-            <a href={`${selectedTokenVisible.url}?format=sing-box`}>sing-box JSON</a>
-            <a href={`${selectedTokenVisible.url}?format=clash`}>Clash/Mihomo</a>
-            <a href={`${selectedTokenVisible.url}?format=uri`}>Direct URL</a>
-            <a href={`${selectedTokenVisible.url}?format=qr`}>QR SVG</a>
-          </div>
+          <div class="import-console">
+            <div class="qr-preview-shell">
+              <div class="qr-card">
+                {#if qrFailed}
+                  <p class="warning-text compact-warning">
+                    <Link2Off size={16} />
+                    {t.qrUnavailable ?? '二维码暂时无法加载，请先复制 URL 使用，或确认面板域名已经正确启用 HTTPS。'}
+                  </p>
+                {/if}
+                <img
+                  class="qr-preview"
+                  src={`${selectedTokenVisible.url}?format=qr`}
+                  alt={t.qrPreview}
+                  onload={() => {
+                    qrFailed = false;
+                  }}
+                  onerror={() => {
+                    qrFailed = true;
+                  }}
+                />
+              </div>
+              <div class="qr-guidance">
+                <p class="eyebrow">{t.qrPreview}</p>
+                <h3>{t.importPage}</h3>
+                <p>{t.qrInstruction}</p>
+                <span>{t.qrEncodedTarget}</span>
+                <code>{selectedTokenVisible.url}</code>
+              </div>
+            </div>
 
-          <div class="qr-preview-shell">
-            {#if qrFailed}
-              <p class="warning-text compact-warning">
-                <Link2Off size={16} />
-                {t.qrUnavailable ?? '二维码暂时无法加载，请先复制 URL 使用，或确认面板域名已经正确启用 HTTPS。'}
-              </p>
-            {/if}
-            <img
-              class="qr-preview"
-              src={`${selectedTokenVisible.url}?format=qr`}
-              alt={t.qrPreview}
-              onload={() => {
-                qrFailed = false;
-              }}
-              onerror={() => {
-                qrFailed = true;
-              }}
-            />
+            <div>
+              <p class="eyebrow format-heading">{t.formats}</p>
+              <div class="format-links">
+                {#each importFormats as format}
+                  <a href={format.href}>{format.label}</a>
+                {/each}
+              </div>
+            </div>
           </div>
         {:else}
           <div class="secret-placeholder">

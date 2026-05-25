@@ -77,6 +77,8 @@
 - [x] Add configuration distribution UI for token create/rotate, import URL copy, and QR preview.
 - [x] Add subscription status update and deletion APIs, with frontend management for select, rotate-and-reveal, enable/disable, delete, and one-time token visibility.
 - [x] Generate subscription and QR URLs from the public HTTPS panel domain or trusted loopback reverse-proxy headers instead of loopback service addresses.
+- [x] Replace fragile hand-written QR generation with standard QR encoding and make scanned codes land on a clear mobile import selection page.
+- [x] Clarify the Service Library to Configuration Distribution workflow so operators can see the path from active service instance to device import.
 
 ## Phase 5: Server Checkup
 

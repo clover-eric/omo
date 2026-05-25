@@ -341,33 +341,59 @@ func importPage(name string, publicURL string) string {
 	escapedName := html.EscapeString(name)
 	escapedURL := html.EscapeString(publicURL)
 	return `<!doctype html>
-<html lang="en">
+<html lang="zh-CN">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>OMO Smart Subscription</title>
+  <title>OMO Configuration Import</title>
   <style>
-    body{font-family:Inter,system-ui,sans-serif;margin:0;background:#f6f7f9;color:#1b1f27}
-    main{max-width:720px;margin:0 auto;padding:32px 20px}
-    h1{font-size:28px;margin:0 0 8px}
-    p{color:#607085;line-height:1.5}
-    .links{display:grid;gap:10px;margin-top:24px}
-    a{border:1px solid #cfd7e3;border-radius:8px;color:#0b5d70;padding:12px 14px;text-decoration:none;background:#fff}
-    code{background:#eef3f5;border-radius:6px;padding:2px 6px}
+    :root{color-scheme:light dark}
+    *{box-sizing:border-box}
+    body{font-family:Inter,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;margin:0;background:#f4f7f8;color:#17232e}
+    main{max-width:760px;margin:0 auto;padding:28px 18px 36px}
+    .hero{background:#fff;border:1px solid #d8e1e7;border-radius:14px;padding:22px;box-shadow:0 12px 34px rgba(28,43,55,.08)}
+    .eyebrow{color:#0f6b78;font-size:12px;font-weight:800;letter-spacing:.04em;margin:0 0 8px;text-transform:uppercase}
+    h1{font-size:28px;line-height:1.16;margin:0}
+    p{color:#667789;line-height:1.55;margin:10px 0 0}
+    .steps{display:grid;gap:10px;margin:18px 0 0}
+    .step{align-items:flex-start;background:#f8fbfb;border:1px solid #e0e8ed;border-radius:10px;display:grid;gap:4px;grid-template-columns:30px minmax(0,1fr);padding:12px}
+    .step b{align-items:center;background:#e5f4f5;border-radius:999px;color:#0f6b78;display:flex;height:24px;justify-content:center;width:24px}
+    .step strong{display:block;font-size:14px}
+    .step span{color:#667789;font-size:13px;line-height:1.45}
+    .links{display:grid;gap:10px;margin-top:18px}
+    a,.copy{align-items:center;background:#0f6b78;border:0;border-radius:10px;color:#fff;display:flex;font:inherit;font-weight:800;justify-content:space-between;min-height:46px;padding:0 14px;text-decoration:none}
+    a.secondary{background:#e5f4f5;color:#0f6b78}
+    code{background:#111820;border-radius:10px;color:#dbe7ef;display:block;font-size:13px;line-height:1.45;margin-top:16px;overflow-wrap:anywhere;padding:12px}
+    .hint{font-size:13px}
+    @media (prefers-color-scheme:dark){
+      body{background:#101419;color:#eef3f6}
+      .hero{background:#151b23;border-color:#2b3542;box-shadow:none}
+      p,.step span{color:#9aa7b7}
+      .step{background:#111820;border-color:#2b3542}
+      a.secondary{background:#1b3038;color:#68d3e3}
+    }
   </style>
 </head>
 <body>
   <main>
-    <p>OMO Boundary Operations</p>
-    <h1>` + escapedName + `</h1>
-    <p>Select an import format for authorized configuration distribution.</p>
-    <div class="links">
-      <a href="` + escapedURL + `?format=sing-box">sing-box format</a>
-      <a href="` + escapedURL + `?format=clash">Clash/Mihomo format</a>
-      <a href="` + escapedURL + `?format=uri">Direct subscription URL</a>
-      <a href="` + escapedURL + `?format=qr">QR code SVG</a>
+    <div class="hero">
+      <p class="eyebrow">OMO Configuration Distribution</p>
+      <h1>` + escapedName + `</h1>
+      <p>这是授权设备的配置导入页。扫码后如果没有自动唤起客户端，请按设备使用的客户端类型选择一个格式打开或复制。</p>
+      <p class="hint">This page is for authorized device import. If scanning does not open your client automatically, choose the matching format below.</p>
+      <div class="steps">
+        <div class="step"><b>1</b><div><strong>选择客户端格式</strong><span>sing-box 使用 JSON，Clash/Mihomo 使用 YAML，其他客户端可先复制通用 URL。</span></div></div>
+        <div class="step"><b>2</b><div><strong>在客户端中导入</strong><span>打开对应链接，或复制地址到客户端的订阅/远程配置入口。</span></div></div>
+        <div class="step"><b>3</b><div><strong>回到 OMO 管理</strong><span>后续可在配置分发页轮换、禁用或删除这个入口。</span></div></div>
+      </div>
+      <div class="links">
+        <a href="` + escapedURL + `?format=sing-box">sing-box JSON <span>打开</span></a>
+        <a href="` + escapedURL + `?format=clash">Clash/Mihomo YAML <span>打开</span></a>
+        <a class="secondary" href="` + escapedURL + `?format=uri">通用 URL / Direct URL <span>打开</span></a>
+        <button class="copy" type="button" onclick="navigator.clipboard&&navigator.clipboard.writeText('` + escapedURL + `');this.textContent='已复制 / Copied'">复制导入 URL</button>
+      </div>
+      <code>` + escapedURL + `</code>
     </div>
-    <p><code>` + escapedURL + `</code></p>
   </main>
 </body>
 </html>`

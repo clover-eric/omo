@@ -52,3 +52,15 @@ func TestPublicContentIncludesActiveServiceMetadata(t *testing.T) {
 		t.Fatalf("expected expired token rejection, got %v", err)
 	}
 }
+
+func TestQRCodeSVGSupportsLongPublicImportURL(t *testing.T) {
+	payload := "https://panel-with-a-long-operations-domain.example.com/s/abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789?from=qr"
+	body, err := qrSVG(payload)
+	if err != nil {
+		t.Fatalf("qr svg: %v", err)
+	}
+	text := string(body)
+	if !strings.Contains(text, "<svg") || !strings.Contains(text, `<path fill="#000"`) {
+		t.Fatalf("expected scannable svg output, got %s", text)
+	}
+}

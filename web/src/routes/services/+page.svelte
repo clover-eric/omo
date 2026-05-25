@@ -60,6 +60,8 @@
     workflowApplyNote: string;
     workflowDistribute: string;
     workflowDistributeNote: string;
+    workflowOutcome: string;
+    workflowOutcomeNote: string;
     recommendedPlan: string;
     recommendedPlanNote: string;
     selectedService: string;
@@ -69,6 +71,7 @@
     notFor: string;
     requirements: string;
     expertDetails: string;
+    expertDetailsNote: string;
     clientCompatibility: string;
     activeInstances: string;
     noInstances: string;
@@ -124,6 +127,8 @@
       workflowApplyNote: '后端生成、验证并写入核心配置',
       workflowDistribute: '分发导入',
       workflowDistributeNote: '到配置分发页生成授权入口',
+      workflowOutcome: '最终结果',
+      workflowOutcomeNote: '设备通过扫码或复制链接导入当前已运行的服务实例',
       recommendedPlan: '推荐接入方案',
       recommendedPlanNote: '普通用户只需要按目标选择服务画像，底层协议细节保留在专家信息中。',
       selectedService: '方案详情',
@@ -133,6 +138,7 @@
       notFor: '不适合',
       requirements: '依赖条件',
       expertDetails: '专家信息',
+      expertDetailsNote: '展开后查看底层协议、传输层、安全层和客户端兼容性。',
       clientCompatibility: '客户端兼容',
       activeInstances: '关联实例',
       noInstances: '该方案尚未创建实例。',
@@ -186,6 +192,8 @@
       workflowApplyNote: 'Backend generates, validates, and writes core config',
       workflowDistribute: 'Distribute import',
       workflowDistributeNote: 'Create authorized entries on Configuration Distribution',
+      workflowOutcome: 'Outcome',
+      workflowOutcomeNote: 'Devices import the active service instance by scanning or copying the link',
       recommendedPlan: 'Recommended Access Plan',
       recommendedPlanNote: 'Operators choose service profiles by goal; low-level details stay in expert information.',
       selectedService: 'Plan Details',
@@ -195,6 +203,7 @@
       notFor: 'Not for',
       requirements: 'Requirements',
       expertDetails: 'Expert information',
+      expertDetailsNote: 'Expand for low-level protocol, transport, security, and client compatibility details.',
       clientCompatibility: 'Client compatibility',
       activeInstances: 'Linked instances',
       noInstances: 'No instance has been created for this plan yet.',
@@ -556,6 +565,11 @@
         <strong>{t.workflowDistribute}</strong>
         <span>{t.workflowDistributeNote}</span>
       </div>
+      <div>
+        <CheckCircle2 size={18} />
+        <strong>{t.workflowOutcome}</strong>
+        <span>{t.workflowOutcomeNote}</span>
+      </div>
     </div>
   </section>
 
@@ -692,8 +706,13 @@
               {/if}
             </div>
 
-            <div class="expert-box">
-              <p class="eyebrow">{t.expertDetails}</p>
+            <details class="expert-box">
+              <summary>
+                <span>
+                  <strong>{t.expertDetails}</strong>
+                  <small>{t.expertDetailsNote}</small>
+                </span>
+              </summary>
               <dl class="service-facts">
                 <div>
                   <dt>Transport</dt>
@@ -713,7 +732,7 @@
                   <span>{format}</span>
                 {/each}
               </div>
-            </div>
+            </details>
 
             <div class="service-actions detail-actions">
               {#if profileState(selectedProfile) === 'not-planned'}
