@@ -36,6 +36,7 @@ Phase 7: backup/restore, audit listing, online update, release automation, and s
 - `scripts/install.sh` now prepares Caddy installation paths and installs Caddy for Ubuntu/Debian/AlmaLinux when missing, with dry-run support.
 - Bootstrap domain checks can compare DNS results with detected public server IPs, or an explicit `--expected-ip`.
 - Panel access middleware redirects initialized main panel routes from HTTP/IP access to the configured HTTPS domain.
+- Panel access middleware recognizes trusted loopback reverse-proxy requests with `X-Forwarded-Proto: https`, preventing HTTPS redirect loops behind Caddy while ignoring untrusted forwarded headers from remote clients.
 - `omoctl dev-seed-ready` added for local verification of initialized panel access behavior.
 - New-server initialization optimized: installer now generates a random temporary initialization port, a one-time token, and a direct `http://SERVER_IP:RANDOM_PORT/init?token=...` link.
 - Installer writes `omo-init.service` for the temporary HTTP initialization entry and `omo-init-watch.service` to switch to the regular loopback-only `omo.service` after the backend writes the bootstrap ready marker and the regular service health check passes.
@@ -516,6 +517,9 @@ Select-String -Path internal\**\*.go,cmd\**\*.go,web\src\**\*.ts,web\src\**\*.sv
 - 2026-05-25: Added installer recovery support for already-created administrators by refreshing the environment-provided initialization token on reinstall and allowing HTTPS entry recovery without a stale retry flag.
 - 2026-05-25: Refreshed embedded frontend assets plus Linux bootstrap archives/checksums after the TLS readiness and recovery-token fixes.
 - 2026-05-25: `go test ./...` and `pnpm --dir web build` passed after the TLS readiness and recovery-token fixes. The frontend build still reports only the existing Svelte `<svelte:component>` deprecation warning in the diagnostics page.
+- 2026-05-25: Target-server testing reached the HTTPS dashboard but reported `ERR_TOO_MANY_REDIRECTS`, caused by the backend not recognizing Caddy's trusted `X-Forwarded-Proto: https` header on loopback reverse-proxy traffic.
+- 2026-05-25: Fixed panel access enforcement and secure cookie decisions to trust forwarded HTTPS only from loopback reverse-proxy requests, added redirect-loop regression tests, and refreshed Linux bootstrap archives/checksums.
+- 2026-05-25: `go test ./...` passed after the trusted forwarded HTTPS fix.
 - `bash -n scripts/install.sh`: passed.
 - `scripts/install.sh --dry-run`: passed with sqlite/Caddy preparation, time-sync check, root-only initialization env/link files, temporary init service, init watcher, firewall guidance, and direct one-time initialization link output.
 - `/mnt/c/Program Files/Go/bin/go.exe test ./...`: passed.

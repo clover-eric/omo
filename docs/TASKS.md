@@ -43,6 +43,7 @@
 - [x] Add installer Caddy detection and installation preparation.
 - [x] Add expected server IP support for domain verification.
 - [x] Enforce HTTPS-domain-only dashboard access after initialization.
+- [x] Recognize trusted Caddy forwarded HTTPS requests to avoid dashboard redirect loops.
 - [x] Add explicit degraded temporary-entry state when Caddy is unavailable.
 - [x] Require a successful TLS certificate handshake before completing HTTPS bootstrap handoff.
 - [x] Allow installer recovery tokens to repair HTTPS entry setup after an administrator already exists.

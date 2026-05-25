@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"io/fs"
+	"net"
 	"net/http"
 	"net/url"
 	"path"
@@ -841,7 +842,7 @@ func panelAccessMiddleware(appStore settingsStore) func(http.Handler) http.Handl
 				return
 			}
 
-			if r.TLS == nil || !settings.HostMatchesDomain(r.Host, policy.Domain) {
+			if !requestIsHTTPS(r) || !settings.HostMatchesDomain(requestHost(r), policy.Domain) {
 				target := "https://" + policy.Domain + r.URL.RequestURI()
 				http.Redirect(w, r, target, http.StatusTemporaryRedirect)
 				return
@@ -850,6 +851,39 @@ func panelAccessMiddleware(appStore settingsStore) func(http.Handler) http.Handl
 			next.ServeHTTP(w, r)
 		})
 	}
+}
+
+func requestIsHTTPS(r *http.Request) bool {
+	if r.TLS != nil {
+		return true
+	}
+	if !trustedForwardedRequest(r) {
+		return false
+	}
+	return strings.EqualFold(firstForwardedValue(r.Header.Get("X-Forwarded-Proto")), "https")
+}
+
+func requestHost(r *http.Request) string {
+	if trustedForwardedRequest(r) {
+		if host := strings.TrimSpace(firstForwardedValue(r.Header.Get("X-Forwarded-Host"))); host != "" {
+			return host
+		}
+	}
+	return r.Host
+}
+
+func trustedForwardedRequest(r *http.Request) bool {
+	host, _, err := net.SplitHostPort(r.RemoteAddr)
+	if err != nil {
+		host = r.RemoteAddr
+	}
+	ip := net.ParseIP(strings.TrimSpace(host))
+	return ip != nil && ip.IsLoopback()
+}
+
+func firstForwardedValue(value string) string {
+	first, _, _ := strings.Cut(value, ",")
+	return strings.TrimSpace(first)
 }
 
 func respondOK(w http.ResponseWriter, r *http.Request, data any) {
@@ -997,7 +1031,7 @@ func ensureCSRFCookie(w http.ResponseWriter, r *http.Request) bool {
 		Path:     "/",
 		HttpOnly: false,
 		SameSite: http.SameSiteLaxMode,
-		Secure:   r.TLS != nil,
+		Secure:   requestIsHTTPS(r),
 	})
 	return true
 }
@@ -1010,7 +1044,7 @@ func writeSessionCookie(w http.ResponseWriter, r *http.Request, token string, ex
 		Expires:  expiresAt,
 		HttpOnly: true,
 		SameSite: http.SameSiteLaxMode,
-		Secure:   r.TLS != nil,
+		Secure:   requestIsHTTPS(r),
 	})
 }
 
@@ -1023,7 +1057,7 @@ func clearSessionCookie(w http.ResponseWriter, r *http.Request) {
 		MaxAge:   -1,
 		HttpOnly: true,
 		SameSite: http.SameSiteLaxMode,
-		Secure:   r.TLS != nil,
+		Secure:   requestIsHTTPS(r),
 	})
 }
 
