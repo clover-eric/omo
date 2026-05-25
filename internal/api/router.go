@@ -339,6 +339,35 @@ func NewRouter(cfg Config) http.Handler {
 		}
 		respondOK(w, r, result)
 	})
+	router.Patch("/api/subscriptions/{id}", func(w http.ResponseWriter, r *http.Request) {
+		if cfg.Subscriptions == nil {
+			respondError(w, r, http.StatusServiceUnavailable, "SUBSCRIPTIONS_UNAVAILABLE", "Smart subscription management is unavailable.", nil)
+			return
+		}
+		var req subscription.UpdateRequest
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			respondError(w, r, http.StatusBadRequest, "INVALID_JSON", "Request body is not valid JSON.", nil)
+			return
+		}
+		result, err := cfg.Subscriptions.Update(r.Context(), chi.URLParam(r, "id"), req)
+		if err != nil {
+			writeSubscriptionError(w, r, err)
+			return
+		}
+		respondOK(w, r, result)
+	})
+	router.Delete("/api/subscriptions/{id}", func(w http.ResponseWriter, r *http.Request) {
+		if cfg.Subscriptions == nil {
+			respondError(w, r, http.StatusServiceUnavailable, "SUBSCRIPTIONS_UNAVAILABLE", "Smart subscription management is unavailable.", nil)
+			return
+		}
+		result, err := cfg.Subscriptions.Delete(r.Context(), chi.URLParam(r, "id"))
+		if err != nil {
+			writeSubscriptionError(w, r, err)
+			return
+		}
+		respondOK(w, r, result)
+	})
 	router.Post("/api/diagnostics/run", func(w http.ResponseWriter, r *http.Request) {
 		if cfg.Diagnostics == nil {
 			respondError(w, r, http.StatusServiceUnavailable, "DIAGNOSTICS_UNAVAILABLE", "Server checkup is unavailable.", nil)

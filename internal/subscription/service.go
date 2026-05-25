@@ -27,6 +27,8 @@ type Store interface {
 	ListDistributionTokens(ctx context.Context) ([]store.DistributionToken, error)
 	DistributionTokenByHash(ctx context.Context, tokenHash string, now time.Time) (*store.DistributionToken, error)
 	RotateDistributionToken(ctx context.Context, id string, tokenHash string) (*store.DistributionToken, error)
+	UpdateDistributionToken(ctx context.Context, id string, name *string, status *string, expiresAt *time.Time, clearExpiresAt bool) (*store.DistributionToken, error)
+	DeleteDistributionToken(ctx context.Context, id string) (bool, error)
 	RecordSubscriptionRequest(ctx context.Context, distributionTokenID string, clientHint string, remoteAddrHash string) error
 }
 
@@ -44,6 +46,13 @@ type CreateRequest struct {
 	ExpiresAt string `json:"expiresAt"`
 }
 
+type UpdateRequest struct {
+	Name           *string `json:"name"`
+	Status         *string `json:"status"`
+	ExpiresAt      *string `json:"expiresAt"`
+	ClearExpiresAt bool    `json:"clearExpiresAt"`
+}
+
 type TokenResult struct {
 	Subscription store.DistributionToken `json:"subscription"`
 	Token        string                  `json:"token"`
@@ -52,6 +61,14 @@ type TokenResult struct {
 
 type ListResult struct {
 	Subscriptions []store.DistributionToken `json:"subscriptions"`
+}
+
+type UpdateResult struct {
+	Subscription store.DistributionToken `json:"subscription"`
+}
+
+type DeleteResult struct {
+	Deleted bool `json:"deleted"`
 }
 
 type PublicRequest struct {
@@ -116,6 +133,59 @@ func (s *Service) Rotate(ctx context.Context, id string) (TokenResult, error) {
 		return TokenResult{}, ErrSubscriptionNotFound
 	}
 	return TokenResult{Subscription: *record, Token: token, URL: s.publicURL(token)}, nil
+}
+
+func (s *Service) Update(ctx context.Context, id string, req UpdateRequest) (UpdateResult, error) {
+	id = strings.TrimSpace(id)
+	if id == "" {
+		return UpdateResult{}, ErrSubscriptionNotFound
+	}
+	if req.Name != nil {
+		name := strings.TrimSpace(*req.Name)
+		if name == "" || len(name) > 80 {
+			return UpdateResult{}, ErrInvalidInput
+		}
+		*req.Name = name
+	}
+	if req.Status != nil {
+		status := strings.TrimSpace(*req.Status)
+		if status != "active" && status != "disabled" {
+			return UpdateResult{}, ErrInvalidInput
+		}
+		*req.Status = status
+	}
+	var expiresAt *time.Time
+	if req.ExpiresAt != nil {
+		raw := strings.TrimSpace(*req.ExpiresAt)
+		if raw == "" {
+			req.ClearExpiresAt = true
+		} else {
+			parsed, err := time.Parse(time.RFC3339, raw)
+			if err != nil {
+				return UpdateResult{}, ErrInvalidInput
+			}
+			expiresAt = &parsed
+		}
+	}
+	record, err := s.store.UpdateDistributionToken(ctx, id, req.Name, req.Status, expiresAt, req.ClearExpiresAt)
+	if err != nil {
+		return UpdateResult{}, err
+	}
+	if record == nil {
+		return UpdateResult{}, ErrSubscriptionNotFound
+	}
+	return UpdateResult{Subscription: *record}, nil
+}
+
+func (s *Service) Delete(ctx context.Context, id string) (DeleteResult, error) {
+	deleted, err := s.store.DeleteDistributionToken(ctx, strings.TrimSpace(id))
+	if err != nil {
+		return DeleteResult{}, err
+	}
+	if !deleted {
+		return DeleteResult{}, ErrSubscriptionNotFound
+	}
+	return DeleteResult{Deleted: true}, nil
 }
 
 func (s *Service) PublicContent(ctx context.Context, req PublicRequest) (PublicResponse, error) {

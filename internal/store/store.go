@@ -829,6 +829,74 @@ func (s *Store) RotateDistributionToken(ctx context.Context, id string, tokenHas
 	return &record, nil
 }
 
+func (s *Store) UpdateDistributionToken(ctx context.Context, id string, name *string, status *string, expiresAt *time.Time, clearExpiresAt bool) (*DistributionToken, error) {
+	current, err := s.DistributionTokenByID(ctx, id)
+	if err != nil || current == nil {
+		return current, err
+	}
+	nextName := current.Name
+	nextStatus := current.Status
+	var nextExpires any
+	if current.ExpiresAt != nil {
+		nextExpires = current.ExpiresAt.UTC().Format(time.RFC3339Nano)
+	}
+	if name != nil {
+		nextName = strings.TrimSpace(*name)
+	}
+	if status != nil {
+		nextStatus = strings.TrimSpace(*status)
+	}
+	if clearExpiresAt {
+		nextExpires = nil
+	} else if expiresAt != nil {
+		nextExpires = expiresAt.UTC().Format(time.RFC3339Nano)
+	}
+	result, err := s.db.ExecContext(
+		ctx,
+		`UPDATE distribution_tokens SET name = ?, status = ?, expires_at = ?, updated_at = ? WHERE id = ?`,
+		nextName,
+		nextStatus,
+		nextExpires,
+		nowString(),
+		id,
+	)
+	if err != nil {
+		return nil, err
+	}
+	affected, err := result.RowsAffected()
+	if err != nil {
+		return nil, err
+	}
+	if affected == 0 {
+		return nil, nil
+	}
+	return s.DistributionTokenByID(ctx, id)
+}
+
+func (s *Store) DeleteDistributionToken(ctx context.Context, id string) (bool, error) {
+	result, err := s.db.ExecContext(ctx, `DELETE FROM distribution_tokens WHERE id = ?`, id)
+	if err != nil {
+		return false, err
+	}
+	affected, err := result.RowsAffected()
+	if err != nil {
+		return false, err
+	}
+	return affected > 0, nil
+}
+
+func (s *Store) DistributionTokenByID(ctx context.Context, id string) (*DistributionToken, error) {
+	row := s.db.QueryRowContext(ctx, `SELECT id, name, status, expires_at, created_at, updated_at FROM distribution_tokens WHERE id = ?`, id)
+	record, err := scanDistributionToken(row)
+	if errors.Is(err, sql.ErrNoRows) {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+	return &record, nil
+}
+
 func (s *Store) RecordSubscriptionRequest(ctx context.Context, distributionTokenID string, clientHint string, remoteAddrHash string) error {
 	_, err := s.db.ExecContext(
 		ctx,

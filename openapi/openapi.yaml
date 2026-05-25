@@ -360,6 +360,49 @@ paths:
                     properties:
                       data:
                         $ref: '#/components/schemas/SubscriptionTokenResult'
+  /api/subscriptions/{id}:
+    patch:
+      summary: Update smart subscription metadata or status
+      operationId: updateSubscription
+      parameters:
+        - $ref: '#/components/parameters/Id'
+        - $ref: '#/components/parameters/CSRFToken'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SubscriptionUpdateRequest'
+      responses:
+        '200':
+          description: Subscription updated
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Envelope'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/SubscriptionUpdateResult'
+    delete:
+      summary: Delete smart subscription
+      operationId: deleteSubscription
+      parameters:
+        - $ref: '#/components/parameters/Id'
+        - $ref: '#/components/parameters/CSRFToken'
+      responses:
+        '200':
+          description: Subscription deleted
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Envelope'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/SubscriptionDeleteResult'
   /s/{token}:
     get:
       summary: Public configuration distribution endpoint
@@ -1397,6 +1440,37 @@ components:
         expiresAt:
           type: string
           format: date-time
+    SubscriptionUpdateRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 80
+        status:
+          type: string
+          enum:
+            - active
+            - disabled
+        expiresAt:
+          type: string
+          format: date-time
+        clearExpiresAt:
+          type: boolean
+    SubscriptionUpdateResult:
+      type: object
+      required:
+        - subscription
+      properties:
+        subscription:
+          $ref: '#/components/schemas/SubscriptionToken'
+    SubscriptionDeleteResult:
+      type: object
+      required:
+        - deleted
+      properties:
+        deleted:
+          type: boolean
     SubscriptionTokenResult:
       type: object
       required:

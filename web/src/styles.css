@@ -317,6 +317,43 @@ h2 {
   margin-top: 16px;
 }
 
+.workflow-strip {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  margin-top: 16px;
+}
+
+.workflow-strip div {
+  align-items: flex-start;
+  background: #ffffff;
+  border: 1px solid #d8dde6;
+  border-radius: 8px;
+  display: grid;
+  gap: 6px;
+  min-height: 94px;
+  padding: 14px;
+}
+
+.workflow-strip svg {
+  color: #0b5d70;
+}
+
+.workflow-strip strong,
+.workflow-strip span {
+  display: block;
+}
+
+.workflow-strip strong {
+  font-size: 14px;
+}
+
+.workflow-strip span {
+  color: #607085;
+  font-size: 13px;
+  line-height: 1.4;
+}
+
 .icon-button {
   align-items: center;
   background: #eef3f5;
@@ -347,6 +384,164 @@ h2 {
   display: grid;
   gap: 14px;
   grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.service-workbench {
+  display: grid;
+  gap: 16px;
+  grid-template-columns: minmax(380px, 0.9fr) minmax(0, 1.1fr);
+}
+
+.plan-list {
+  display: grid;
+  gap: 10px;
+}
+
+.plan-row {
+  align-items: center;
+  background: #ffffff;
+  border: 1px solid #d8dde6;
+  border-radius: 8px;
+  display: grid;
+  gap: 12px;
+  grid-template-columns: minmax(0, 1fr) auto;
+  min-height: 96px;
+  padding: 14px;
+}
+
+.plan-select {
+  align-items: center;
+  background: transparent;
+  border: 0;
+  color: inherit;
+  cursor: pointer;
+  display: grid;
+  gap: 12px;
+  grid-template-columns: auto minmax(0, 1fr);
+  padding: 0;
+  text-align: left;
+}
+
+.plan-select:focus-visible {
+  border-radius: 8px;
+  box-shadow: 0 0 0 4px rgba(15, 107, 120, 0.12);
+  outline: 0;
+}
+
+.plan-row.active-row,
+.subscription-row.active-row {
+  border-color: #72c2cb;
+  box-shadow: 0 0 0 3px rgba(15, 107, 120, 0.12);
+}
+
+.plan-main {
+  min-width: 0;
+}
+
+.plan-title {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.plan-title h3,
+.plan-main p {
+  margin: 0;
+}
+
+.plan-title h3 {
+  font-size: 15px;
+}
+
+.plan-title span,
+.status-chip {
+  background: #eef3f5;
+  border-radius: 999px;
+  color: #0b5d70;
+  font-size: 12px;
+  font-weight: 800;
+  padding: 5px 9px;
+}
+
+.plan-main p {
+  color: #607085;
+  font-size: 13px;
+  line-height: 1.45;
+  margin-top: 6px;
+}
+
+.plan-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 10px;
+}
+
+.plan-meta span {
+  background: #f6f9fb;
+  border: 1px solid #dfe6ee;
+  border-radius: 999px;
+  color: #405064;
+  font-size: 12px;
+  padding: 4px 8px;
+}
+
+.plan-row > button:not(.plan-select),
+.secret-placeholder button,
+.row-select {
+  align-items: center;
+  background: #0b5d70;
+  border: 0;
+  border-radius: 8px;
+  color: white;
+  cursor: pointer;
+  display: inline-flex;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 800;
+  gap: 8px;
+  justify-content: center;
+  min-height: 38px;
+  padding: 0 12px;
+}
+
+.plan-row > button:not(.plan-select):disabled,
+.secret-placeholder button:disabled {
+  cursor: not-allowed;
+  opacity: 0.58;
+}
+
+.service-detail {
+  min-height: 520px;
+}
+
+.panel-note {
+  color: #607085;
+  font-size: 13px;
+  line-height: 1.45;
+  margin: 6px 0 0;
+}
+
+.detail-instances {
+  margin: 16px 0;
+}
+
+.expert-box {
+  border-top: 1px solid #e1e7ee;
+  display: grid;
+  gap: 12px;
+  margin-top: 16px;
+  padding-top: 16px;
+}
+
+.detail-actions {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  margin-top: 16px;
+}
+
+.detail-actions a {
+  min-height: 38px;
 }
 
 .instance-list {
@@ -579,6 +774,35 @@ h2 {
   min-height: 320px;
 }
 
+.secret-placeholder {
+  align-items: start;
+  background: #f6f9fb;
+  border: 1px dashed #cfd7e3;
+  border-radius: 8px;
+  display: grid;
+  gap: 10px;
+  padding: 16px;
+}
+
+.secret-placeholder svg {
+  color: #0b5d70;
+}
+
+.secret-placeholder strong,
+.secret-placeholder p {
+  margin: 0;
+}
+
+.secret-placeholder p {
+  color: #607085;
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.format-heading {
+  margin-top: 14px;
+}
+
 .secret-box {
   display: grid;
   gap: 10px;
@@ -641,11 +865,26 @@ h2 {
   background: #ffffff;
   border: 1px solid #d8dde6;
   border-radius: 8px;
-  display: flex;
+  display: grid;
   gap: 16px;
-  justify-content: space-between;
+  grid-template-columns: auto minmax(0, 1fr) auto;
   min-height: 76px;
   padding: 14px;
+}
+
+.subscription-main {
+  min-width: 0;
+}
+
+.subscription-row .secondary-action,
+.plan-row > button:not(.plan-select):disabled {
+  background: #eef3f5;
+  color: #0b5d70;
+}
+
+.subscription-row .danger-action {
+  background: #9f2c1f;
+  color: #ffffff;
 }
 
 .action-link:hover {
@@ -950,6 +1189,17 @@ h2 {
   background: #9f2c1f;
 }
 
+.warning-text {
+  background: #fff7ed;
+  border: 1px solid #fed7aa;
+  border-radius: 8px;
+  color: #9a3412;
+  font-size: 13px;
+  line-height: 1.45;
+  margin: 0 0 14px;
+  padding: 10px 12px;
+}
+
 .audit-list {
   display: grid;
   gap: 10px;
@@ -1043,6 +1293,11 @@ h2 {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
+  .workflow-strip,
+  .service-workbench {
+    grid-template-columns: 1fr;
+  }
+
   .service-grid {
     grid-template-columns: 1fr;
   }
@@ -1071,6 +1326,30 @@ h2 {
 
   .topbar-actions {
     justify-content: flex-start;
+  }
+
+  .plan-row,
+  .subscription-row {
+    align-items: stretch;
+    grid-template-columns: 1fr;
+  }
+
+  .plan-select .service-icon {
+    display: none;
+  }
+
+  .row-actions {
+    justify-content: stretch;
+  }
+
+  .row-actions button,
+  .row-select,
+  .plan-row > button:not(.plan-select) {
+    width: 100%;
+  }
+
+  .detail-actions {
+    grid-template-columns: 1fr;
   }
 
   .summary-grid {
@@ -1665,7 +1944,9 @@ h2 {
 :root[data-theme='light'] .sidebar,
 :root[data-theme='light'] .metric-card,
 :root[data-theme='light'] .panel,
+:root[data-theme='light'] .workflow-strip div,
 :root[data-theme='light'] .service-card,
+:root[data-theme='light'] .plan-row,
 :root[data-theme='light'] .instance-row,
 :root[data-theme='light'] .subscription-row,
 :root[data-theme='light'] .check-result-list article,
@@ -1682,6 +1963,10 @@ h2 {
 :root[data-theme='light'] .eyebrow,
 :root[data-theme='light'] .metric-card p,
 :root[data-theme='light'] .metric-card span,
+:root[data-theme='light'] .workflow-strip span,
+:root[data-theme='light'] .plan-main p,
+:root[data-theme='light'] .panel-note,
+:root[data-theme='light'] .secret-placeholder p,
 :root[data-theme='light'] .service-title p,
 :root[data-theme='light'] .service-facts dt,
 :root[data-theme='light'] .subscription-row p,
@@ -1728,8 +2013,11 @@ h2 {
 :root[data-theme='dark'] .sidebar,
 :root[data-theme='dark'] .metric-card,
 :root[data-theme='dark'] .panel,
+:root[data-theme='dark'] .workflow-strip div,
 :root[data-theme='dark'] .service-card,
+:root[data-theme='dark'] .plan-row,
 :root[data-theme='dark'] .instance-row,
+:root[data-theme='dark'] .secret-placeholder,
 :root[data-theme='dark'] .subscription-row,
 :root[data-theme='dark'] .check-result-list article,
 :root[data-theme='dark'] .audit-row,
@@ -1745,6 +2033,10 @@ h2 {
 :root[data-theme='dark'] .eyebrow,
 :root[data-theme='dark'] .metric-card p,
 :root[data-theme='dark'] .metric-card span,
+:root[data-theme='dark'] .workflow-strip span,
+:root[data-theme='dark'] .plan-main p,
+:root[data-theme='dark'] .panel-note,
+:root[data-theme='dark'] .secret-placeholder p,
 :root[data-theme='dark'] .service-title p,
 :root[data-theme='dark'] .service-facts dt,
 :root[data-theme='dark'] .subscription-row p,
@@ -1782,6 +2074,10 @@ h2 {
 :root[data-theme='dark'] .service-icon,
 :root[data-theme='dark'] .icon-button,
 :root[data-theme='dark'] .secondary-action,
+:root[data-theme='dark'] .subscription-row .secondary-action,
+:root[data-theme='dark'] .plan-title span,
+:root[data-theme='dark'] .status-chip,
+:root[data-theme='dark'] .plan-meta span,
 :root[data-theme='dark'] .init-form .secondary-button {
   background: #1b3038;
   border-color: #2c4650;
@@ -1960,6 +2256,10 @@ body {
 :root[data-theme='light'] .check-icon,
 :root[data-theme='light'] .icon-button,
 :root[data-theme='light'] .secondary-action,
+:root[data-theme='light'] .plan-title span,
+:root[data-theme='light'] .status-chip,
+:root[data-theme='light'] .plan-meta span,
+:root[data-theme='light'] .secret-placeholder,
 :root[data-theme='light'] .init-form .secondary-button,
 :root[data-theme='light'] .console-preference-controls button,
 :root[data-theme='light'] .preference-controls button {
@@ -2008,7 +2308,9 @@ body {
 :root[data-theme='light'] .primary-action,
 :root[data-theme='light'] .distribution-form button,
 :root[data-theme='light'] .secret-box button,
+:root[data-theme='light'] .secret-placeholder button,
 :root[data-theme='light'] .subscription-row button,
+:root[data-theme='light'] .plan-row > button:not(.plan-select),
 :root[data-theme='light'] .service-actions button,
 :root[data-theme='light'] .init-form button,
 :root[data-theme='light'] .login-form button {
@@ -2018,10 +2320,29 @@ body {
 
 :root[data-theme='light'] .service-actions .secondary-action,
 :root[data-theme='light'] .secondary-action,
+:root[data-theme='light'] .subscription-row .secondary-action,
 :root[data-theme='light'] .init-form .secondary-button {
   background: var(--surface-soft);
   box-shadow: none;
   color: var(--accent);
+}
+
+:root[data-theme='light'] .danger-action,
+:root[data-theme='dark'] .danger-action {
+  background: #9f2c1f;
+  color: #ffffff;
+}
+
+:root[data-theme='light'] .warning-text {
+  background: #fff7ed;
+  border-color: #fed7aa;
+  color: #9a3412;
+}
+
+:root[data-theme='dark'] .warning-text {
+  background: rgba(154, 52, 18, 0.18);
+  border-color: rgba(251, 146, 60, 0.45);
+  color: #fdba74;
 }
 
 :root[data-theme='light'] .snapshot-list div,

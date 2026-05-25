@@ -91,19 +91,19 @@ After initialization settings indicate the panel entry is configured, `internal/
 
 This is intentionally file-level and backend-only. Later Phase 3 work can swap the JSON validator for `sing-box check`, then add service reload and health checks without changing the public API contract.
 
-The Svelte service library consumes `/api/services`, `/api/core/singbox/status`, and the apply/rollback APIs to render service cards and persisted service instances. It displays service dependencies, transport/security summaries, client compatibility, core health, and the latest browser-session job result, updates returned service instance state after apply/rollback, but does not assemble or mutate core service configuration locally.
+The Svelte service library consumes `/api/services`, `/api/core/singbox/status`, and the apply/rollback APIs to render a guided access-plan workflow rather than a raw protocol picker. Operators see recommended access profiles, the next action for each profile, current instance state, and a selected-plan detail pane. Low-level transport, security, and client-format details are grouped under expert information. The page updates returned service instance state after apply/rollback, but does not assemble or mutate core service configuration locally.
 
 ## Phase 4 Smart Subscriptions
 
 `internal/subscription` owns configuration distribution tokens and public subscription output:
 
-- Management APIs create, list, and rotate distribution tokens while persisting only token hashes in SQLite.
+- Management APIs create, list, update, rotate, disable/enable, and delete distribution tokens while persisting only token hashes in SQLite.
 - Token plaintext is returned only immediately after create or rotate.
 - `/s/{token}` validates active, unexpired tokens, records a request event with a hashed remote address, and returns one of several backend-generated formats.
 - Known client hints can receive a specific format automatically; unknown clients receive an adaptive HTML import page with manual format choices.
 - Public sing-box and Clash/Mihomo descriptors include metadata for currently active managed service instances so distributed clients can identify the backend-owned service catalog state without the frontend generating core configuration.
 
-The Phase 4 implementation outputs sing-box JSON, Clash/Mihomo-style YAML text, direct URI text, QR code SVG, and the adaptive import page. The Svelte console includes a configuration distribution page for creating and rotating tokens, copying the one-time import URL, and previewing QR import output.
+The Phase 4 implementation outputs sing-box JSON, Clash/Mihomo-style YAML text, direct URI text, QR code SVG, and the adaptive import page. The Svelte console includes a configuration distribution page for creating distribution entries, selecting historical records, rotating to reveal a new one-time import URL, copying available formats, previewing QR output, disabling/enabling entries, and deleting entries. Historical plaintext URLs are intentionally not redisplayed; rotation is the safe reveal path.
 
 ## Phase 5 Server Checkup
 

@@ -141,6 +141,14 @@ export type SubscriptionTokenResult = {
   url: string;
 };
 
+export type SubscriptionUpdateResult = {
+  subscription: SubscriptionToken;
+};
+
+export type SubscriptionDeleteResult = {
+  deleted: boolean;
+};
+
 export type DiagnosticCheck = {
   id: string;
   label: string;

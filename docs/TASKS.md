@@ -64,6 +64,7 @@
 - [x] Synchronize service instance state through config apply and rollback jobs.
 - [x] Implement dashboard service cards.
 - [x] Add `/services` frontend route for the service library.
+- [x] Rework `/services` into a guided access-plan workflow with profile selection, instance status, backend apply state, and expert details separated from the ordinary operator path.
 
 ## Phase 4: Smart Subscriptions And QR Import
 
@@ -73,6 +74,7 @@
 - [x] Implement adaptive import page for unknown clients.
 - [x] Implement QR code output.
 - [x] Add configuration distribution UI for token create/rotate, import URL copy, and QR preview.
+- [x] Add subscription status update and deletion APIs, with frontend management for select, rotate-and-reveal, enable/disable, delete, and one-time token visibility.
 
 ## Phase 5: Server Checkup
 

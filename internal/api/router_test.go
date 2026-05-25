@@ -370,6 +370,71 @@ func TestSubscriptionCreateListRotateAndPublicEndpoint(t *testing.T) {
 	}
 }
 
+func TestSubscriptionDisableAndDeleteInvalidatePublicEndpoint(t *testing.T) {
+	router := testRouterWithSubscriptions(t)
+
+	createReq := httptest.NewRequest(http.MethodPost, "/api/subscriptions", strings.NewReader(`{"name":"Operations devices"}`))
+	addCSRF(createReq)
+	createRec := httptest.NewRecorder()
+	router.ServeHTTP(createRec, createReq)
+	if createRec.Code != http.StatusCreated {
+		t.Fatalf("expected create 201, got %d: %s", createRec.Code, createRec.Body.String())
+	}
+	var createPayload Envelope
+	if err := json.Unmarshal(createRec.Body.Bytes(), &createPayload); err != nil {
+		t.Fatalf("decode create response: %v", err)
+	}
+	raw := createPayload.Data.(map[string]any)
+	token, _ := raw["token"].(string)
+	subscriptionData, _ := raw["subscription"].(map[string]any)
+	id, _ := subscriptionData["id"].(string)
+
+	disableReq := httptest.NewRequest(http.MethodPatch, "/api/subscriptions/"+id, strings.NewReader(`{"status":"disabled"}`))
+	addCSRF(disableReq)
+	disableRec := httptest.NewRecorder()
+	router.ServeHTTP(disableRec, disableReq)
+	if disableRec.Code != http.StatusOK || !strings.Contains(disableRec.Body.String(), `"status":"disabled"`) {
+		t.Fatalf("expected disabled subscription, got %d: %s", disableRec.Code, disableRec.Body.String())
+	}
+
+	publicReq := httptest.NewRequest(http.MethodGet, "/s/"+token+"?format=uri", nil)
+	publicRec := httptest.NewRecorder()
+	router.ServeHTTP(publicRec, publicReq)
+	if publicRec.Code != http.StatusNotFound {
+		t.Fatalf("expected disabled public token 404, got %d: %s", publicRec.Code, publicRec.Body.String())
+	}
+
+	enableReq := httptest.NewRequest(http.MethodPatch, "/api/subscriptions/"+id, strings.NewReader(`{"status":"active","name":"Field devices"}`))
+	addCSRF(enableReq)
+	enableRec := httptest.NewRecorder()
+	router.ServeHTTP(enableRec, enableReq)
+	if enableRec.Code != http.StatusOK || !strings.Contains(enableRec.Body.String(), `"Field devices"`) {
+		t.Fatalf("expected enabled renamed subscription, got %d: %s", enableRec.Code, enableRec.Body.String())
+	}
+
+	publicAgainReq := httptest.NewRequest(http.MethodGet, "/s/"+token+"?format=uri", nil)
+	publicAgainRec := httptest.NewRecorder()
+	router.ServeHTTP(publicAgainRec, publicAgainReq)
+	if publicAgainRec.Code != http.StatusOK {
+		t.Fatalf("expected re-enabled public token 200, got %d: %s", publicAgainRec.Code, publicAgainRec.Body.String())
+	}
+
+	deleteReq := httptest.NewRequest(http.MethodDelete, "/api/subscriptions/"+id, nil)
+	addCSRF(deleteReq)
+	deleteRec := httptest.NewRecorder()
+	router.ServeHTTP(deleteRec, deleteReq)
+	if deleteRec.Code != http.StatusOK || !strings.Contains(deleteRec.Body.String(), `"deleted":true`) {
+		t.Fatalf("expected delete result, got %d: %s", deleteRec.Code, deleteRec.Body.String())
+	}
+
+	publicDeletedReq := httptest.NewRequest(http.MethodGet, "/s/"+token+"?format=uri", nil)
+	publicDeletedRec := httptest.NewRecorder()
+	router.ServeHTTP(publicDeletedRec, publicDeletedReq)
+	if publicDeletedRec.Code != http.StatusNotFound {
+		t.Fatalf("expected deleted public token 404, got %d: %s", publicDeletedRec.Code, publicDeletedRec.Body.String())
+	}
+}
+
 func TestPublicSubscriptionQRCodeOutput(t *testing.T) {
 	router := testRouterWithSubscriptions(t)
 
