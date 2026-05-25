@@ -526,6 +526,7 @@ Select-String -Path internal\**\*.go,cmd\**\*.go,web\src\**\*.ts,web\src\**\*.sv
 - 2026-05-25: Removed duplicated console sidebars from main pages, fixed the missing/fragile distribution navigation import path by centralizing icons, and replaced the diagnostics deprecated dynamic component usage.
 - 2026-05-25: Refreshed embedded frontend assets and Linux amd64/arm64 bootstrap archives/checksums after the console interaction fixes.
 - 2026-05-25: `pnpm --dir web test`, `pnpm --dir web build`, and `go test ./...` passed after the console interaction fixes.
+- 2026-05-25: Hardened installer reruns so TCP 80/443 already held by Caddy is accepted as the expected managed entry state instead of blocking reinstall recovery with a false port-in-use failure.
 - `bash -n scripts/install.sh`: passed.
 - `scripts/install.sh --dry-run`: passed with sqlite/Caddy preparation, time-sync check, root-only initialization env/link files, temporary init service, init watcher, firewall guidance, and direct one-time initialization link output.
 - `/mnt/c/Program Files/Go/bin/go.exe test ./...`: passed.

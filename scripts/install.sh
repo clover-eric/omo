@@ -159,8 +159,13 @@ install_sqlite() {
 }
 
 check_port_free() {
-  local port="$1"
+  local port="$1" listeners
   if command -v ss >/dev/null 2>&1 && ss -ltn "( sport = :$port )" | grep -q ":$port"; then
+    listeners="$(ss -ltnp "( sport = :$port )" 2>/dev/null || true)"
+    if printf '%s\n' "$listeners" | grep -qi "caddy"; then
+      log "port ${port}: already held by Caddy; continuing"
+      return
+    fi
     fail "port $port is already in use"
   fi
 }
