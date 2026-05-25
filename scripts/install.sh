@@ -341,7 +341,7 @@ Wants=omo-init.service
 
 [Service]
 Type=simple
-ExecStart=/bin/sh -c 'while [ ! -f "${READY_MARKER}" ]; do if curl -fsS --max-time 2 http://127.0.0.1:${INIT_PORT}/api/bootstrap/status 2>/dev/null | grep -q "\"phase1Complete\":true"; then break; fi; sleep 5; done; systemctl reset-failed omo.service >/dev/null 2>&1 || true; systemctl enable --now omo.service || exit 1; for i in 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20; do curl -fsS --max-time 2 http://127.0.0.1:8080/api/system/health >/dev/null 2>&1 && break; sleep 1; done; curl -fsS --max-time 2 http://127.0.0.1:8080/api/system/health >/dev/null || exit 1; rm -f "${INIT_ENV_PATH}" "${INIT_LINK_PATH}"; systemctl disable --now omo-init.service; systemctl disable omo-init-watch.service'
+ExecStart=/bin/sh -c 'while [ ! -f "${READY_MARKER}" ]; do if curl -fsS --max-time 2 http://127.0.0.1:8080/api/system/health >/dev/null 2>&1; then break; fi; if curl -fsS --max-time 2 http://127.0.0.1:${INIT_PORT}/api/bootstrap/status 2>/dev/null | grep -q "\"phase1Complete\":true"; then break; fi; sleep 5; done; systemctl reset-failed omo.service >/dev/null 2>&1 || true; systemctl enable --now omo.service || exit 1; for i in 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20; do curl -fsS --max-time 2 http://127.0.0.1:8080/api/system/health >/dev/null 2>&1 && break; sleep 1; done; curl -fsS --max-time 2 http://127.0.0.1:8080/api/system/health >/dev/null || exit 1; rm -f "${INIT_ENV_PATH}" "${INIT_LINK_PATH}"; systemctl disable --now omo-init.service; systemctl disable omo-init-watch.service'
 Restart=on-failure
 RestartSec=5s
 
@@ -510,6 +510,44 @@ wait_for_init_health() {
   systemctl status omo-init --no-pager || true
   journalctl -u omo-init -n 80 --no-pager || true
   fail "temporary initialization service did not become healthy; inspect the omo-init service logs"
+}
+
+bootstrap_phase1_complete() {
+  local url
+  url="http://127.0.0.1:${INIT_PORT}/api/bootstrap/status"
+  curl -fsS --max-time 2 "$url" 2>/dev/null | grep -q '"phase1Complete":true'
+}
+
+wait_for_regular_health() {
+  local url
+  url="http://127.0.0.1:8080/api/system/health"
+  for _ in $(seq 1 20); do
+    if curl -fsS --max-time 2 "$url" >/dev/null 2>&1; then
+      return
+    fi
+    sleep 1
+  done
+
+  systemctl status omo --no-pager || true
+  journalctl -u omo -n 80 --no-pager || true
+  fail "regular OMO service did not become healthy; inspect the omo service logs"
+}
+
+handoff_if_already_initialized() {
+  if ! bootstrap_phase1_complete; then
+    return 1
+  fi
+
+  log "bootstrap: existing initialized state detected; starting regular panel service"
+  systemctl reset-failed omo.service >/dev/null 2>&1 || true
+  run systemctl enable --now omo.service
+  wait_for_regular_health
+  run rm -f "$INIT_ENV_PATH" "$INIT_LINK_PATH"
+  run systemctl disable --now omo-init.service
+  run systemctl disable --now omo-init-watch.service
+  log "regular OMO service health: ok"
+  log "temporary initialization entry closed"
+  return 0
 }
 
 install_binary() {
@@ -681,6 +719,11 @@ main() {
   run systemctl enable --now omo-init-watch
   run systemctl start omo-init
   wait_for_init_health
+  if handoff_if_already_initialized; then
+    log "OMO regular panel service started"
+    log "dashboard: https://${SERVER_IP}/dashboard or your configured panel domain"
+    exit 0
+  fi
   log_firewall_guidance
 
   log "OMO temporary initialization service started"

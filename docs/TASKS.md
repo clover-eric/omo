@@ -28,6 +28,7 @@
 - [x] Add automatic switch from temporary initialization service to regular panel service after bootstrap.
 - [x] Redirect an already completed temporary initialization page to the HTTPS dashboard.
 - [x] Recover repeated installs that are already initialized by starting the regular panel service instead of waiting only for a new ready marker.
+- [x] Close temporary initialization services immediately when a repeated install detects an already initialized regular panel.
 - [x] Add bootstrap retry controls for failed jobs.
 - [x] Make installer reruns stop stale OMO systemd services before writing a fresh initialization port, token, and recovery link.
 - [x] Add login/logout flow using stored sessions.
