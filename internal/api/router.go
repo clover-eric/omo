@@ -831,7 +831,7 @@ func NewRouter(cfg Config) http.Handler {
 func panelAccessMiddleware(appStore settingsStore) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			if strings.HasPrefix(r.URL.Path, "/api/") || strings.HasPrefix(r.URL.Path, "/init") || strings.HasPrefix(r.URL.Path, "/login") {
+			if strings.HasPrefix(r.URL.Path, "/api/") || strings.HasPrefix(r.URL.Path, "/init") || strings.HasPrefix(r.URL.Path, "/login") || strings.HasPrefix(r.URL.Path, "/_app/") {
 				next.ServeHTTP(w, r)
 				return
 			}

@@ -63,6 +63,42 @@ func TestPanelAccessAllowsAPI(t *testing.T) {
 	}
 }
 
+func TestPanelAccessAllowsStaticAssetsOnTemporaryEntry(t *testing.T) {
+	store := fakeSettingsStore{
+		"bootstrap.phase1_complete": "true",
+		"bootstrap.domain":          "ops.example.com",
+	}
+	handler := panelAccessMiddleware(store)(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	}))
+
+	req := httptest.NewRequest(http.MethodGet, "http://127.0.0.1/_app/immutable/entry/start.js", nil)
+	rec := httptest.NewRecorder()
+	handler.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("expected static asset pass-through, got %d with location %q", rec.Code, rec.Header().Get("Location"))
+	}
+}
+
+func TestPanelAccessAllowsInitializationRouteAssets(t *testing.T) {
+	store := fakeSettingsStore{
+		"bootstrap.phase1_complete": "true",
+		"bootstrap.domain":          "ops.example.com",
+	}
+	handler := panelAccessMiddleware(store)(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	}))
+
+	req := httptest.NewRequest(http.MethodGet, "http://127.0.0.1/init/_app/immutable/entry/start.js", nil)
+	rec := httptest.NewRecorder()
+	handler.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("expected init route asset pass-through, got %d with location %q", rec.Code, rec.Header().Get("Location"))
+	}
+}
+
 func TestPanelAccessAllowsTrustedForwardedHTTPSDomain(t *testing.T) {
 	store := fakeSettingsStore{
 		"bootstrap.phase1_complete": "true",

@@ -529,6 +529,7 @@ Select-String -Path internal\**\*.go,cmd\**\*.go,web\src\**\*.ts,web\src\**\*.sv
 - 2026-05-25: Hardened installer reruns so TCP 80/443 already held by Caddy is accepted as the expected managed entry state instead of blocking reinstall recovery with a false port-in-use failure.
 - 2026-05-25: Updated the SvelteKit frontend shell to use `$app/state` instead of legacy `$app/stores` for runes-mode page state and guarded browser-only preference event dispatch, then refreshed embedded frontend assets and Linux bootstrap archives to address a target-server initialization white screen.
 - 2026-05-25: Updated the embedded SPA static handler to serve generated route HTML files such as `/init -> init.html` before falling back to `index.html`, making first-load initialization pages more reliable on temporary HTTP entry ports.
+- 2026-05-25: Target-server white-screen diagnostics showed `/init` HTML loaded while `/_app` JavaScript assets were redirected to the HTTPS panel domain; panel access middleware now allows static frontend assets through the temporary initialization entry.
 - `bash -n scripts/install.sh`: passed.
 - `scripts/install.sh --dry-run`: passed with sqlite/Caddy preparation, time-sync check, root-only initialization env/link files, temporary init service, init watcher, firewall guidance, and direct one-time initialization link output.
 - `/mnt/c/Program Files/Go/bin/go.exe test ./...`: passed.
