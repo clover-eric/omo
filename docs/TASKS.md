@@ -26,6 +26,7 @@
 - [x] Add root-only recovery file for the one-time initialization link.
 - [x] Add installer time-sync check, firewall guidance, and temporary service health verification.
 - [x] Add automatic switch from temporary initialization service to regular panel service after bootstrap.
+- [x] Redirect an already completed temporary initialization page to the HTTPS dashboard.
 - [x] Add bootstrap retry controls for failed jobs.
 - [x] Make installer reruns stop stale OMO systemd services before writing a fresh initialization port, token, and recovery link.
 - [x] Add login/logout flow using stored sessions.

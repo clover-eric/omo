@@ -117,6 +117,17 @@ func TestBootstrapWritesReadyMarker(t *testing.T) {
 	if _, err := os.Stat(marker); err != nil {
 		t.Fatalf("expected ready marker: %v", err)
 	}
+
+	status, err := service.Status(ctx)
+	if err != nil {
+		t.Fatalf("status: %v", err)
+	}
+	if !status.Initialized || !status.Phase1Complete {
+		t.Fatalf("expected initialized status after bootstrap, got %#v", status)
+	}
+	if status.Domain != "ops.example.com" {
+		t.Fatalf("expected bootstrap domain, got %q", status.Domain)
+	}
 }
 
 func TestEnsureInitTokenRefreshesFromInstallerEnvironment(t *testing.T) {

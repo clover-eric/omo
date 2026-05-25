@@ -110,8 +110,19 @@
       if (status.domain) {
         domain = status.domain;
       }
+      redirectIfReady(status);
     } catch (error) {
       errorMessage = messageFrom(error);
+    }
+  }
+
+  function redirectIfReady(nextStatus: BootstrapStatus) {
+    if (!nextStatus.phase1Complete || !nextStatus.domain) {
+      return;
+    }
+    const target = `https://${nextStatus.domain}/dashboard`;
+    if (window.location.href !== target) {
+      window.location.replace(target);
     }
   }
 

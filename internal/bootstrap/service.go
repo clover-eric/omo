@@ -236,7 +236,7 @@ func (s *Service) Status(ctx context.Context) (Status, error) {
 
 	return Status{
 		State:           state,
-		Initialized:     false,
+		Initialized:     phase1Complete,
 		Phase1Complete:  phase1Complete,
 		RequiresToken:   tokenRequired,
 		Domain:          domain,
