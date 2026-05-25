@@ -5,6 +5,7 @@
   import ShieldCheck from '@lucide/svelte/icons/shield-check';
   import { onMount } from 'svelte';
   import ConsoleShell from '$lib/ConsoleShell.svelte';
+  import { formatDateTime } from '$lib/format';
   import { localizedErrorMessage } from '$lib/localizedErrors';
   import { preferences, type Language } from '$lib/preferences';
   import { apiGet, type AuditListResult, type AuditLog } from '$lib/api';
@@ -114,7 +115,7 @@
         <div>
           <p>{t.latestAction}</p>
           <strong>{logs[0]?.action ?? t.none}</strong>
-          <span>{logs[0] ? new Date(logs[0].createdAt).toLocaleString() : t.noEntries}</span>
+          <span>{logs[0] ? formatDateTime(logs[0].createdAt, $preferences.language) : t.noEntries}</span>
         </div>
       </article>
     </section>
@@ -141,7 +142,7 @@
               <div>
                 <h3>{log.action}</h3>
                 <p>{log.resourceType}{log.resourceId ? ` - ${log.resourceId}` : ''}</p>
-                <span>{new Date(log.createdAt).toLocaleString()}</span>
+                <span>{formatDateTime(log.createdAt, $preferences.language)}</span>
               </div>
               <code>{detailsText(log.details)}</code>
             </article>

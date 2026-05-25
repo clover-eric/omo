@@ -11,6 +11,7 @@
   import SlidersHorizontal from '@lucide/svelte/icons/sliders-horizontal';
   import { onMount } from 'svelte';
   import ConsoleShell from '$lib/ConsoleShell.svelte';
+  import { formatDateTime } from '$lib/format';
   import { localizedErrorMessage } from '$lib/localizedErrors';
   import { preferences, type Language } from '$lib/preferences';
   import { apiGet, type SystemOverview } from '$lib/api';
@@ -269,7 +270,7 @@
           <div><dt>{t.panelDomain}</dt><dd>{overview?.bootstrap?.domain ?? t.unknown}</dd></div>
           <div><dt>{t.latestJob}</dt><dd>{overview?.bootstrap?.latestJob?.userMessage ?? t.noJob}</dd></div>
           <div><dt>{t.accessCore}</dt><dd>{overview?.core.message ?? t.unknown}</dd></div>
-          <div><dt>{t.timestamp}</dt><dd>{overview ? new Date(overview.timestamp).toLocaleString() : t.unknown}</dd></div>
+          <div><dt>{t.timestamp}</dt><dd>{overview ? formatDateTime(overview.timestamp, $preferences.language) : t.unknown}</dd></div>
         </dl>
       </aside>
     </section>

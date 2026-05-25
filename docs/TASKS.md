@@ -115,6 +115,7 @@
 - [x] Return stable empty arrays for console list APIs and render empty/error states instead of persistent loading screens.
 - [x] Complete Chinese/English switching coverage for service library, configuration distribution, cascade nodes, audit logs, and settings pages.
 - [x] Localize service profile protocol summaries and operator-facing API errors in Chinese mode.
+- [x] Remove English-mode Chinese leakage from localized form defaults, subscription expiration input placeholders, and console timestamp formatting.
 - [x] Use an absolute managed sing-box configuration path in installed systemd units.
 - [x] Improve light-mode console polish and smooth initialization progress/entry transition.
 - [x] Split `/dashboard` into a real overview page and keep `/services` as the service library.

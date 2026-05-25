@@ -45,6 +45,7 @@
     exitNode: string;
     createPairingCode: string;
     nodeName: string;
+    defaultNodeName: string;
     domain: string;
     ttlMinutes: string;
     createCode: string;
@@ -87,6 +88,7 @@
       exitNode: '出口节点',
       createPairingCode: '创建配对码',
       nodeName: '节点名称',
+      defaultNodeName: '出口级联节点',
       domain: '域名',
       ttlMinutes: '有效分钟数',
       createCode: '创建配对码',
@@ -127,6 +129,7 @@
       exitNode: 'Exit Node',
       createPairingCode: 'Create Pairing Code',
       nodeName: 'Node name',
+      defaultNodeName: 'Exit cascade node',
       domain: 'Domain',
       ttlMinutes: 'TTL minutes',
       createCode: 'Create Code',
@@ -155,7 +158,9 @@
 
   let nodes = $state<CascadeNode[]>([]);
   let pairs = $state<CascadePair[]>([]);
-  let nodeName = $state('出口级联节点');
+  let nodeName = $state('');
+  let nodeNameEdited = $state(false);
+  let previousLanguage = $state<Language>('zh-CN');
   let domain = $state('');
   let ttlMinutes = $state(15);
   let exitDomain = $state('');
@@ -174,6 +179,17 @@
   let latestSamples = $state<CascadeHealthSample[]>([]);
   let healthMessage = $state('');
   let t = $derived(copy[$preferences.language]);
+
+  $effect(() => {
+    const language = $preferences.language;
+    const previousDefault = copy[previousLanguage].defaultNodeName;
+    const nextDefault = copy[language].defaultNodeName;
+    if (!nodeNameEdited || nodeName === '' || nodeName === previousDefault) {
+      nodeName = nextDefault;
+      nodeNameEdited = false;
+    }
+    previousLanguage = language;
+  });
 
   onMount(() => {
     void loadCascade();
@@ -402,7 +418,15 @@
 
         <label>
           <span>{t.nodeName}</span>
-          <input bind:value={nodeName} maxlength="80" required />
+          <input
+            value={nodeName}
+            maxlength="80"
+            required
+            oninput={(event) => {
+              nodeNameEdited = true;
+              nodeName = (event.currentTarget as HTMLInputElement).value;
+            }}
+          />
         </label>
         <label>
           <span>{t.domain}</span>

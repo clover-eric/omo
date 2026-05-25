@@ -9,6 +9,7 @@
   import TriangleAlert from '@lucide/svelte/icons/triangle-alert';
   import { onMount } from 'svelte';
   import ConsoleShell from '$lib/ConsoleShell.svelte';
+  import { formatDate, formatTime } from '$lib/format';
   import { localizedErrorMessage } from '$lib/localizedErrors';
   import { preferences, type Language } from '$lib/preferences';
   import {
@@ -337,8 +338,8 @@
       <div class="metric-icon"><CheckCircle2 size={20} /></div>
       <div>
         <p>{t.updated}</p>
-        <strong>{report ? new Date(report.createdAt).toLocaleTimeString() : '--'}</strong>
-        <span>{report ? new Date(report.createdAt).toLocaleDateString() : t.noSavedReport}</span>
+        <strong>{report ? formatTime(report.createdAt, $preferences.language) : '--'}</strong>
+        <span>{report ? formatDate(report.createdAt, $preferences.language) : t.noSavedReport}</span>
       </div>
     </article>
   </section>

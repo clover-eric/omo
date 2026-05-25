@@ -8,6 +8,7 @@
   import TriangleAlert from '@lucide/svelte/icons/triangle-alert';
   import { onMount } from 'svelte';
   import ConsoleShell from '$lib/ConsoleShell.svelte';
+  import { formatDateTime } from '$lib/format';
   import { localizedErrorMessage } from '$lib/localizedErrors';
   import { preferences, type Language } from '$lib/preferences';
   import {
@@ -560,7 +561,7 @@
             <article class="subscription-row">
               <div>
                 <h3>{backup.status} {t.backupRecord}</h3>
-                <p>{new Date(backup.createdAt).toLocaleString()} - {backup.path}</p>
+                <p>{formatDateTime(backup.createdAt, $preferences.language)} - {backup.path}</p>
                 {#if backup.checksum}
                   <code>{backup.checksum}</code>
                 {/if}

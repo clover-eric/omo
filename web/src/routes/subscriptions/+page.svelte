@@ -6,6 +6,7 @@
   import RefreshCw from '@lucide/svelte/icons/refresh-cw';
   import { onMount } from 'svelte';
   import ConsoleShell from '$lib/ConsoleShell.svelte';
+  import { formatDateTime } from '$lib/format';
   import { localizedErrorMessage } from '$lib/localizedErrors';
   import { preferences, type Language } from '$lib/preferences';
   import {
@@ -23,7 +24,9 @@
     newToken: string;
     importLink: string;
     name: string;
+    defaultTokenName: string;
     expiration: string;
+    expirationPlaceholder: string;
     createToken: string;
     oneTimeSecret: string;
     latestToken: string;
@@ -38,6 +41,7 @@
     rotate: string;
     created: string;
     operationFailed: string;
+    invalidExpiration: string;
   };
 
   const copy: Record<Language, Copy> = {
@@ -48,7 +52,9 @@
       newToken: '新令牌',
       importLink: '授权导入链接',
       name: '名称',
+      defaultTokenName: '运维设备',
       expiration: '过期时间',
+      expirationPlaceholder: '可留空，例如 2026-06-01 09:30',
       createToken: '创建令牌',
       oneTimeSecret: '一次性密钥',
       latestToken: '最新令牌',
@@ -62,7 +68,8 @@
       empty: '尚未创建配置分发令牌。',
       rotate: '轮换',
       created: '创建于',
-      operationFailed: '配置分发操作失败。'
+      operationFailed: '配置分发操作失败。',
+      invalidExpiration: '过期时间格式无效，请使用 2026-06-01 09:30。'
     },
     'en-US': {
       title: 'Configuration Distribution',
@@ -71,7 +78,9 @@
       newToken: 'New Token',
       importLink: 'Authorized Import Link',
       name: 'Name',
+      defaultTokenName: 'Operations devices',
       expiration: 'Expiration',
+      expirationPlaceholder: 'Optional, for example 2026-06-01 09:30',
       createToken: 'Create Token',
       oneTimeSecret: 'One-Time Secret',
       latestToken: 'Latest Token',
@@ -85,12 +94,15 @@
       empty: 'No distribution tokens have been created yet.',
       rotate: 'Rotate',
       created: 'created',
-      operationFailed: 'Subscription operation failed.'
+      operationFailed: 'Subscription operation failed.',
+      invalidExpiration: 'Use an expiration like 2026-06-01 09:30.'
     }
   };
 
   let subscriptions = $state<SubscriptionToken[]>([]);
-  let name = $state('Operations devices');
+  let name = $state('');
+  let nameEdited = $state(false);
+  let previousLanguage = $state<Language>('zh-CN');
   let expiresAt = $state('');
   let loading = $state(true);
   let submitting = $state(false);
@@ -99,6 +111,17 @@
   let latestToken = $state<SubscriptionTokenResult | null>(null);
   let copied = $state('');
   let t = $derived(copy[$preferences.language]);
+
+  $effect(() => {
+    const language = $preferences.language;
+    const previousDefault = copy[previousLanguage].defaultTokenName;
+    const nextDefault = copy[language].defaultTokenName;
+    if (!nameEdited || name === '' || name === previousDefault) {
+      name = nextDefault;
+      nameEdited = false;
+    }
+    previousLanguage = language;
+  });
 
   onMount(() => {
     void loadSubscriptions();
@@ -120,10 +143,16 @@
   async function createSubscription() {
     submitting = true;
     errorMessage = '';
+    const expiresAtValue = expirationToISOString();
+    if (expiresAtValue === null) {
+      errorMessage = t.invalidExpiration;
+      submitting = false;
+      return;
+    }
     try {
       latestToken = await apiPost<SubscriptionTokenResult>('/api/subscriptions', {
         name,
-        expiresAt: expiresAt ? new Date(expiresAt).toISOString() : ''
+        expiresAt: expiresAtValue
       });
       await loadSubscriptions();
     } catch (error) {
@@ -164,6 +193,19 @@
   function messageFrom(error: unknown) {
     return localizedErrorMessage(error, $preferences.language, t.operationFailed);
   }
+
+  function expirationToISOString() {
+    const raw = expiresAt.trim();
+    if (!raw) {
+      return '';
+    }
+    const normalized = raw.includes('T') ? raw : raw.replace(' ', 'T');
+    if (!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(normalized)) {
+      return null;
+    }
+    const parsed = new Date(normalized);
+    return Number.isNaN(parsed.getTime()) ? null : parsed.toISOString();
+  }
 </script>
 
 <svelte:head>
@@ -197,12 +239,20 @@
 
       <label>
         <span>{t.name}</span>
-        <input bind:value={name} maxlength="80" required />
+        <input
+          value={name}
+          maxlength="80"
+          required
+          oninput={(event) => {
+            nameEdited = true;
+            name = (event.currentTarget as HTMLInputElement).value;
+          }}
+        />
       </label>
 
       <label>
         <span>{t.expiration}</span>
-        <input bind:value={expiresAt} type="datetime-local" />
+        <input bind:value={expiresAt} inputmode="numeric" placeholder={t.expirationPlaceholder} />
       </label>
 
       <button type="submit" disabled={submitting}>
@@ -269,7 +319,7 @@
           <article class="subscription-row">
             <div>
               <h3>{subscription.name}</h3>
-              <p>{subscription.status} - {t.created} {new Date(subscription.createdAt).toLocaleString()}</p>
+              <p>{subscription.status} - {t.created} {formatDateTime(subscription.createdAt, $preferences.language)}</p>
             </div>
             <button
               type="button"
