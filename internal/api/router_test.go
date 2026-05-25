@@ -1097,6 +1097,24 @@ func findCookie(cookies []*http.Cookie, name string) *http.Cookie {
 	return nil
 }
 
+func TestSPAHandlerServesRouteHTMLWhenAvailable(t *testing.T) {
+	router := NewRouter(Config{StaticFS: fstest.MapFS{
+		"index.html": {Data: []byte("<html>index</html>")},
+		"init.html":  {Data: []byte("<html>init</html>")},
+	}})
+
+	req := httptest.NewRequest(http.MethodGet, "/init?token=test", nil)
+	rec := httptest.NewRecorder()
+	router.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("expected init route 200, got %d", rec.Code)
+	}
+	if strings.TrimSpace(rec.Body.String()) != "<html>init</html>" {
+		t.Fatalf("expected route html, got %q", rec.Body.String())
+	}
+}
+
 func testPeerNode(t *testing.T, domain string) pairing.PeerNode {
 	t.Helper()
 	publicKey, _, err := ed25519.GenerateKey(rand.Reader)

@@ -1301,6 +1301,13 @@ func spaHandler(staticFS fs.FS) http.HandlerFunc {
 			return
 		}
 
+		htmlName := name + ".html"
+		if _, err := fs.Stat(staticFS, htmlName); err == nil {
+			r.URL.Path = "/" + htmlName
+			fileServer.ServeHTTP(w, r)
+			return
+		}
+
 		r.URL.Path = "/"
 		fileServer.ServeHTTP(w, r)
 	}
