@@ -325,6 +325,9 @@ func TestSubscriptionCreateListRotateAndPublicEndpoint(t *testing.T) {
 	if !strings.Contains(createRec.Body.String(), `"token":"`) {
 		t.Fatalf("expected one-time token in create response, got %s", createRec.Body.String())
 	}
+	if !strings.Contains(createRec.Body.String(), `"url":"https://ops.example.com/s/`) || strings.Contains(createRec.Body.String(), "127.0.0.1") {
+		t.Fatalf("expected public domain subscription URL, got %s", createRec.Body.String())
+	}
 
 	var createPayload Envelope
 	if err := json.Unmarshal(createRec.Body.Bytes(), &createPayload); err != nil {
@@ -367,6 +370,28 @@ func TestSubscriptionCreateListRotateAndPublicEndpoint(t *testing.T) {
 	}
 	if !strings.Contains(rotateRec.Body.String(), `"token":"`) {
 		t.Fatalf("expected rotated token response, got %s", rotateRec.Body.String())
+	}
+	if !strings.Contains(rotateRec.Body.String(), `"url":"https://ops.example.com/s/`) || strings.Contains(rotateRec.Body.String(), "127.0.0.1") {
+		t.Fatalf("expected public domain rotated URL, got %s", rotateRec.Body.String())
+	}
+}
+
+func TestSubscriptionCreateUsesTrustedForwardedPublicURL(t *testing.T) {
+	router := testRouterWithSubscriptionBaseURL(t, "", "")
+
+	createReq := httptest.NewRequest(http.MethodPost, "/api/subscriptions", strings.NewReader(`{"name":"Operations devices"}`))
+	createReq.RemoteAddr = "127.0.0.1:49152"
+	createReq.Host = "127.0.0.1:8080"
+	createReq.Header.Set("X-Forwarded-Proto", "https")
+	createReq.Header.Set("X-Forwarded-Host", "hk2.i3.pub")
+	addCSRF(createReq)
+	createRec := httptest.NewRecorder()
+	router.ServeHTTP(createRec, createReq)
+	if createRec.Code != http.StatusCreated {
+		t.Fatalf("expected create 201, got %d: %s", createRec.Code, createRec.Body.String())
+	}
+	if !strings.Contains(createRec.Body.String(), `"url":"https://hk2.i3.pub/s/`) || strings.Contains(createRec.Body.String(), "127.0.0.1") {
+		t.Fatalf("expected trusted forwarded public URL, got %s", createRec.Body.String())
 	}
 }
 
@@ -1083,15 +1108,25 @@ func testRouterWithConfigGen(t *testing.T) http.Handler {
 
 func testRouterWithSubscriptions(t *testing.T) http.Handler {
 	t.Helper()
+	return testRouterWithSubscriptionBaseURL(t, "https://ops.example.com", "ops.example.com")
+}
+
+func testRouterWithSubscriptionBaseURL(t *testing.T, baseURL string, domain string) http.Handler {
+	t.Helper()
 	appStore, err := store.Open(context.Background(), filepath.Join(t.TempDir(), "omo.db"))
 	if err != nil {
 		t.Fatalf("open store: %v", err)
 	}
 	t.Cleanup(func() { _ = appStore.Close() })
+	if domain != "" {
+		if err := appStore.SetSetting(context.Background(), "bootstrap.domain", domain); err != nil {
+			t.Fatalf("set bootstrap domain: %v", err)
+		}
+	}
 	bootstrapSvc := bootstrap.NewService(appStore)
 	return NewRouter(Config{StaticFS: fstest.MapFS{
 		"index.html": {Data: []byte("<html>omo</html>")},
-	}, Bootstrap: bootstrapSvc, Auth: auth.NewService(appStore), Subscriptions: subscription.NewService(appStore, "https://ops.example.com")})
+	}, Bootstrap: bootstrapSvc, Auth: auth.NewService(appStore), Store: appStore, Subscriptions: subscription.NewService(appStore, baseURL)})
 }
 
 func testRouterWithDiagnostics(t *testing.T) http.Handler {

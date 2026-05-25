@@ -323,11 +323,12 @@
     profiles.find((profile) => profile.id === selectedProfileId) ?? profiles[0] ?? null
   );
   let coreReady = $derived(Boolean(coreStatus?.installed && coreStatus?.healthy));
+  let activeServiceCount = $derived(services.filter((service) => service.status === 'active').length);
   let metrics = $derived([
     { label: t.accessCore, value: coreReady ? t.ready : t.needsAttention, note: coreStatus?.message ?? t.loadingCore, icon: Server },
     { label: t.profileTemplates, value: profiles.length.toString(), note: t.backendCatalog, icon: Boxes },
-    { label: t.managedServices, value: services.length.toString(), note: lastJob ? lastJob.job.userMessage : t.managedByBackend, icon: ClipboardList },
-    { label: t.operationsMode, value: t.authorized, note: t.authorizedNote, icon: ShieldCheck }
+    { label: t.managedServices, value: `${activeServiceCount}/${services.length}`, note: lastJob ? lastJob.job.userMessage : t.managedByBackend, icon: ClipboardList },
+    { label: t.workflowDistribute, value: activeServiceCount > 0 ? t.readyForDistribution : t.needsApply, note: t.workflowDistributeNote, icon: ShieldCheck }
   ]);
 
   $effect(() => {
@@ -479,6 +480,14 @@
     return t.nextPlan;
   }
 
+  function nextButtonText(profile: ServiceProfile) {
+    const state = profileState(profile);
+    if (state === 'planned') {
+      return t.apply;
+    }
+    return t.plan;
+  }
+
   function statusText(status: ServiceInstance['status']) {
     return t[status] ?? status;
   }
@@ -517,37 +526,36 @@
   statusReady={coreReady}
   {actions}
 >
-  <section class="summary-grid" aria-label={t.title}>
-    {#each metrics as metric}
-      {@const Icon = metric.icon}
-      <article class="metric-card">
-        <div class="metric-icon">
-          <Icon size={20} />
-        </div>
-        <div>
-          <p>{metric.label}</p>
-          <strong>{metric.value}</strong>
-          <span>{metric.note}</span>
-        </div>
-      </article>
-    {/each}
-  </section>
+  <section class="panel service-command-bar" aria-label={t.title}>
+    <div class="service-command-metrics">
+      {#each metrics as metric}
+        {@const Icon = metric.icon}
+        <article>
+          <Icon size={18} />
+          <div>
+            <span>{metric.label}</span>
+            <strong>{metric.value}</strong>
+          </div>
+        </article>
+      {/each}
+    </div>
 
-  <section class="workflow-strip" aria-label={t.workflow}>
-    <div>
-      <Boxes size={18} />
-      <strong>{t.workflowPlan}</strong>
-      <span>{t.workflowPlanNote}</span>
-    </div>
-    <div>
-      <ShieldCheck size={18} />
-      <strong>{t.workflowApply}</strong>
-      <span>{t.workflowApplyNote}</span>
-    </div>
-    <div>
-      <ClipboardList size={18} />
-      <strong>{t.workflowDistribute}</strong>
-      <span>{t.workflowDistributeNote}</span>
+    <div class="workflow-strip compact-workflow" aria-label={t.workflow}>
+      <div>
+        <Boxes size={18} />
+        <strong>{t.workflowPlan}</strong>
+        <span>{t.workflowPlanNote}</span>
+      </div>
+      <div>
+        <ShieldCheck size={18} />
+        <strong>{t.workflowApply}</strong>
+        <span>{t.workflowApplyNote}</span>
+      </div>
+      <div>
+        <ClipboardList size={18} />
+        <strong>{t.workflowDistribute}</strong>
+        <span>{t.workflowDistributeNote}</span>
+      </div>
     </div>
   </section>
 
@@ -601,23 +609,30 @@
                     </div>
                   </div>
                 </button>
-                <button
-                  type="button"
-                  disabled={busyProfile !== '' || profileState(profile) === 'active'}
-                  onclick={(event) => {
-                    event.stopPropagation();
-                    void runNextAction(profile);
-                  }}
-                >
-                  {#if busyProfile.startsWith(`${profile.id}:`)}
-                    <LoaderCircle size={16} class="spin" />
-                  {:else if profileState(profile) === 'planned'}
-                    <ShieldCheck size={16} />
-                  {:else}
-                    <Boxes size={16} />
-                  {/if}
-                  {nextText(profile)}
-                </button>
+                {#if profileState(profile) === 'active'}
+                  <a class="primary-action plan-distribution-action" href="/subscriptions">
+                    <ClipboardList size={16} />
+                    {t.openDistribution}
+                  </a>
+                {:else}
+                  <button
+                    type="button"
+                    disabled={busyProfile !== ''}
+                    onclick={(event) => {
+                      event.stopPropagation();
+                      void runNextAction(profile);
+                    }}
+                  >
+                    {#if busyProfile.startsWith(`${profile.id}:`)}
+                      <LoaderCircle size={16} class="spin" />
+                    {:else if profileState(profile) === 'planned'}
+                      <ShieldCheck size={16} />
+                    {:else}
+                      <Boxes size={16} />
+                    {/if}
+                    {nextButtonText(profile)}
+                  </button>
+                {/if}
               </article>
             {/each}
           </div>
@@ -632,6 +647,17 @@
                 <p class="panel-note">{t.selectedServiceNote}</p>
               </div>
               <span class="status-chip">{stateText(selectedProfile)}</span>
+            </div>
+
+            <div class="service-next-panel">
+              <div>
+                <span>{t.status}</span>
+                <strong>{stateText(selectedProfile)}</strong>
+              </div>
+              <div>
+                <span>{t.workflow}</span>
+                <strong>{nextText(selectedProfile)}</strong>
+              </div>
             </div>
 
             <dl class="service-facts">
@@ -690,36 +716,39 @@
             </div>
 
             <div class="service-actions detail-actions">
-              <button
-                class="secondary-action"
-                type="button"
-                onclick={() => planProfile(selectedProfile)}
-                disabled={busyProfile !== ''}
-              >
-                <Boxes size={16} />
-                {t.plan}
-              </button>
-              <button
-                type="button"
-                onclick={() => runConfigAction(selectedProfile, 'apply')}
-                disabled={busyProfile !== ''}
-              >
-                <ShieldCheck size={16} />
-                {t.apply}
-              </button>
+              {#if profileState(selectedProfile) === 'not-planned'}
+                <button
+                  type="button"
+                  onclick={() => planProfile(selectedProfile)}
+                  disabled={busyProfile !== ''}
+                >
+                  <Boxes size={16} />
+                  {t.plan}
+                </button>
+              {:else if profileState(selectedProfile) === 'planned'}
+                <button
+                  type="button"
+                  onclick={() => runConfigAction(selectedProfile, 'apply')}
+                  disabled={busyProfile !== ''}
+                >
+                  <ShieldCheck size={16} />
+                  {t.apply}
+                </button>
+              {:else}
+                <a class="primary-action" href="/subscriptions">
+                  <ClipboardList size={16} />
+                  {t.openDistribution}
+                </a>
+              {/if}
               <button
                 class="secondary-action"
                 type="button"
                 onclick={() => runConfigAction(selectedProfile, 'rollback')}
-                disabled={busyProfile !== ''}
+                disabled={busyProfile !== '' || profileState(selectedProfile) !== 'active'}
               >
                 <RotateCcw size={16} />
                 {t.rollback}
               </button>
-              <a class="primary-action" href="/subscriptions">
-                <ClipboardList size={16} />
-                {t.openDistribution}
-              </a>
             </div>
           {/if}
         </section>

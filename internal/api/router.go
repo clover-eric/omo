@@ -315,7 +315,7 @@ func NewRouter(cfg Config) http.Handler {
 			respondError(w, r, http.StatusBadRequest, "INVALID_JSON", "Request body is not valid JSON.", nil)
 			return
 		}
-		result, err := cfg.Subscriptions.Create(r.Context(), req)
+		result, err := cfg.Subscriptions.Create(r.Context(), req, externalBaseURL(r, cfg.Store))
 		if err != nil {
 			writeSubscriptionError(w, r, err)
 			return
@@ -332,7 +332,7 @@ func NewRouter(cfg Config) http.Handler {
 			respondError(w, r, http.StatusServiceUnavailable, "SUBSCRIPTIONS_UNAVAILABLE", "Smart subscription management is unavailable.", nil)
 			return
 		}
-		result, err := cfg.Subscriptions.Rotate(r.Context(), chi.URLParam(r, "id"))
+		result, err := cfg.Subscriptions.Rotate(r.Context(), chi.URLParam(r, "id"), externalBaseURL(r, cfg.Store))
 		if err != nil {
 			writeSubscriptionError(w, r, err)
 			return
@@ -838,7 +838,7 @@ func NewRouter(cfg Config) http.Handler {
 			Format:     r.URL.Query().Get("format"),
 			ClientHint: r.UserAgent(),
 			RemoteAddr: r.RemoteAddr,
-			BaseURL:    subscription.BaseURLFromRequest(r),
+			BaseURL:    externalBaseURL(r, cfg.Store),
 		})
 		if err != nil {
 			if errors.Is(err, subscription.ErrSubscriptionNotFound) {
@@ -913,6 +913,22 @@ func trustedForwardedRequest(r *http.Request) bool {
 func firstForwardedValue(value string) string {
 	first, _, _ := strings.Cut(value, ",")
 	return strings.TrimSpace(first)
+}
+
+func externalBaseURL(r *http.Request, appStore settingsStore) string {
+	if appStore != nil {
+		if domain, ok, err := appStore.GetSetting(r.Context(), "bootstrap.domain"); err == nil && ok {
+			domain = strings.TrimSpace(domain)
+			if domain != "" {
+				return "https://" + domain
+			}
+		}
+	}
+	scheme := "http"
+	if requestIsHTTPS(r) {
+		scheme = "https"
+	}
+	return scheme + "://" + requestHost(r)
 }
 
 func respondOK(w http.ResponseWriter, r *http.Request, data any) {

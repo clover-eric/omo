@@ -65,6 +65,7 @@
 - [x] Implement dashboard service cards.
 - [x] Add `/services` frontend route for the service library.
 - [x] Rework `/services` into a guided access-plan workflow with profile selection, instance status, backend apply state, and expert details separated from the ordinary operator path.
+- [x] Tighten `/services` workflow actions so active plans lead directly to configuration distribution and planned/unplanned services expose only the next useful operation.
 
 ## Phase 4: Smart Subscriptions And QR Import
 
@@ -75,6 +76,7 @@
 - [x] Implement QR code output.
 - [x] Add configuration distribution UI for token create/rotate, import URL copy, and QR preview.
 - [x] Add subscription status update and deletion APIs, with frontend management for select, rotate-and-reveal, enable/disable, delete, and one-time token visibility.
+- [x] Generate subscription and QR URLs from the public HTTPS panel domain or trusted loopback reverse-proxy headers instead of loopback service addresses.
 
 ## Phase 5: Server Checkup
 

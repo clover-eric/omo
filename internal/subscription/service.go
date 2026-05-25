@@ -96,7 +96,7 @@ func (s *Service) List(ctx context.Context) (ListResult, error) {
 	return ListResult{Subscriptions: records}, nil
 }
 
-func (s *Service) Create(ctx context.Context, req CreateRequest) (TokenResult, error) {
+func (s *Service) Create(ctx context.Context, req CreateRequest, baseURL ...string) (TokenResult, error) {
 	name := strings.TrimSpace(req.Name)
 	if name == "" || len(name) > 80 {
 		return TokenResult{}, ErrInvalidInput
@@ -117,10 +117,10 @@ func (s *Service) Create(ctx context.Context, req CreateRequest) (TokenResult, e
 	if err != nil {
 		return TokenResult{}, err
 	}
-	return TokenResult{Subscription: record, Token: token, URL: s.publicURL(token)}, nil
+	return TokenResult{Subscription: record, Token: token, URL: s.publicURL(token, firstBaseURL(baseURL))}, nil
 }
 
-func (s *Service) Rotate(ctx context.Context, id string) (TokenResult, error) {
+func (s *Service) Rotate(ctx context.Context, id string, baseURL ...string) (TokenResult, error) {
 	token, err := auth.GenerateToken(32)
 	if err != nil {
 		return TokenResult{}, err
@@ -132,7 +132,7 @@ func (s *Service) Rotate(ctx context.Context, id string) (TokenResult, error) {
 	if record == nil {
 		return TokenResult{}, ErrSubscriptionNotFound
 	}
-	return TokenResult{Subscription: *record, Token: token, URL: s.publicURL(token)}, nil
+	return TokenResult{Subscription: *record, Token: token, URL: s.publicURL(token, firstBaseURL(baseURL))}, nil
 }
 
 func (s *Service) Update(ctx context.Context, id string, req UpdateRequest) (UpdateResult, error) {
@@ -248,12 +248,22 @@ func normalizeFormat(format string, clientHint string) string {
 	}
 }
 
-func (s *Service) publicURL(token string) string {
-	base := s.baseURL
+func (s *Service) publicURL(token string, overrideBaseURL string) string {
+	base := strings.TrimRight(strings.TrimSpace(overrideBaseURL), "/")
+	if base == "" {
+		base = s.baseURL
+	}
 	if base == "" {
 		base = "http://127.0.0.1:8080"
 	}
 	return base + "/s/" + token
+}
+
+func firstBaseURL(baseURLs []string) string {
+	if len(baseURLs) == 0 {
+		return ""
+	}
+	return baseURLs[0]
 }
 
 func (s *Service) activeServiceInstances(ctx context.Context) ([]store.ServiceInstance, error) {

@@ -4,6 +4,7 @@
   import ClipboardCopy from '@lucide/svelte/icons/clipboard-copy';
   import Eye from '@lucide/svelte/icons/eye';
   import KeyRound from '@lucide/svelte/icons/key-round';
+  import Link2Off from '@lucide/svelte/icons/link-2-off';
   import LoaderCircle from '@lucide/svelte/icons/loader-circle';
   import QrCode from '@lucide/svelte/icons/qr-code';
   import RefreshCw from '@lucide/svelte/icons/refresh-cw';
@@ -65,6 +66,8 @@
     cancelDelete: string;
     formats: string;
     qrPreview: string;
+    qrUnavailable?: string;
+    internalUrlWarning?: string;
     publicDisabled: string;
     operationFailed: string;
     invalidExpiration: string;
@@ -155,6 +158,8 @@
       cancelDelete: 'Cancel',
       formats: 'Available import formats',
       qrPreview: 'QR import',
+      qrUnavailable: 'QR preview cannot load yet. Copy the URL for now, or confirm the panel domain is serving HTTPS.',
+      internalUrlWarning: 'The returned URL is internal and cannot be used by external devices. Confirm the panel domain, then rotate this entry again.',
       publicDisabled: 'This entry is disabled; the public import address will not return configuration.',
       operationFailed: 'Configuration distribution operation failed.',
       invalidExpiration: 'Use an expiration like 2026-06-01 09:30.'
@@ -174,6 +179,8 @@
   let errorMessage = $state('');
   let latestToken = $state<SubscriptionTokenResult | null>(null);
   let copied = $state('');
+  let qrFailed = $state(false);
+  let previousQrURL = $state('');
   let t = $derived(copy[$preferences.language]);
   let selectedSubscription = $derived(
     subscriptions.find((subscription) => subscription.id === selectedId) ?? subscriptions[0] ?? null
@@ -183,6 +190,14 @@
       ? latestToken
       : null
   );
+
+  $effect(() => {
+    const nextURL = selectedTokenVisible?.url ?? '';
+    if (nextURL !== previousQrURL) {
+      qrFailed = false;
+      previousQrURL = nextURL;
+    }
+  });
 
   $effect(() => {
     const language = $preferences.language;
@@ -339,6 +354,15 @@
     const parsed = new Date(normalized);
     return Number.isNaN(parsed.getTime()) ? null : parsed.toISOString();
   }
+
+  function isInternalURL(value: string) {
+    try {
+      const parsed = new URL(value);
+      return ['127.0.0.1', 'localhost', '::1'].includes(parsed.hostname);
+    } catch {
+      return false;
+    }
+  }
 </script>
 
 <svelte:head>
@@ -425,6 +449,12 @@
           <div class="secret-box">
             <span>{t.oneTimeUrl}</span>
             <code>{selectedTokenVisible.url}</code>
+            {#if isInternalURL(selectedTokenVisible.url)}
+              <p class="warning-text compact-warning">
+                <Link2Off size={16} />
+                {t.internalUrlWarning ?? '当前返回的是内部地址，外部设备无法使用。请确认面板域名配置后重新轮换入口。'}
+              </p>
+            {/if}
             <button type="button" onclick={() => copyText(selectedTokenVisible.url, 'url')}>
               <ClipboardCopy size={16} />
               {copied === 'url' ? t.copied : t.copyUrl}
@@ -439,7 +469,25 @@
             <a href={`${selectedTokenVisible.url}?format=qr`}>QR SVG</a>
           </div>
 
-          <img class="qr-preview" src={`${selectedTokenVisible.url}?format=qr`} alt={t.qrPreview} />
+          <div class="qr-preview-shell">
+            {#if qrFailed}
+              <p class="warning-text compact-warning">
+                <Link2Off size={16} />
+                {t.qrUnavailable ?? '二维码暂时无法加载，请先复制 URL 使用，或确认面板域名已经正确启用 HTTPS。'}
+              </p>
+            {/if}
+            <img
+              class="qr-preview"
+              src={`${selectedTokenVisible.url}?format=qr`}
+              alt={t.qrPreview}
+              onload={() => {
+                qrFailed = false;
+              }}
+              onerror={() => {
+                qrFailed = true;
+              }}
+            />
+          </div>
         {:else}
           <div class="secret-placeholder">
             <KeyRound size={22} />
